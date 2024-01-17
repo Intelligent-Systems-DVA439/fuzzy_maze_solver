@@ -2,7 +2,9 @@
 Open source implementation of an AI maze solver in python using fuzzy
 
 ## Built with
-+ Python3
++ Python3.10.12
++ numpy 1.23.5 
++ scikit-fuzzy 0.4.2 
 
 
 ## Usage
