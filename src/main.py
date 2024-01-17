@@ -8,12 +8,17 @@
 # Refer to the LICENSE file for details
 #==============================================================================
 
+
 #------------------------------------------------------------------------------
 # Libraries
 import numpy as np
 import skfuzzy as fuzz
 from skfuzzy import control as ctrl
+
+import rclpy
+from std_msgs.msg import String
 #------------------------------------------------------------------------------
+
 
 #------------------------------------------------------------------------------
 # Fuzzy variables
@@ -38,9 +43,9 @@ obstacle_right['no'] = fuzz.trapmf(obstacle_left.universe, [0.5, 0.7, 1, 2]) # "
 obstacle_right['yes'] = fuzz.trapmf(obstacle_left.universe, [-1, 0, 0,3, 0,5]) # "Lower", created using the fist value as being outside of range "to the left"
 
 # Control output memberships
-movement['turn_left'] = fuzz.trimf(movement.universe, [-1, -1, 0])
+movement['turn_left'] = fuzz.trapmf(movement.universe, [-2, -1, -0.9, -0.4]) # "Lower", created using the fist value as being outside of range "to the left"
 movement['forward'] = fuzz.trimf(movement.universe, [-0.5, 0, 0.5])
-movement['turn_right'] = fuzz.trimf(movement.universe, [0, 1, 1])
+movement['turn_right'] = fuzz.trapmf(movement.universe, [0.4, 0.9, 1, 2]) # "Upper", created using the last value outside of range "to the right"
 
 # Define fuzzy logic rules (always favor left)
 rule1 = ctrl.Rule(obstacle_left['no'] & obstacle_front['no'] & obstacle_right['no'], movement['forward'])
@@ -61,12 +66,24 @@ fuzzy_system = ctrl.ControlSystemSimulation(fuzzy_ctrl)
 #==============================================================================
 # Get sensor readings
 def get_sensor_readings():
+    rclpy.init()
 
+    node = rclpy.create_node('sensor_subscriber')
+
+    subscription = node.create_subscription(String, '/scan', lambda msg: node.get_logger().info('I heard: "%s"' % msg.data), 10)
+    subscription  # prevent unused variable warning
+
+    rclpy.spin(node)
+
+    # Destroy the node explicitly
+    # (optional - otherwise it will be done automatically
+    # when the garbage collector destroys the node object)
+    node.destroy_node()
+    rclpy.shutdown()
 #==============================================================================
 
-
 #==============================================================================
-# Maze solver, decide movement decision
+# Maze solver, decide which movement should be taken
 def movement_choice():
     # Get sensor values (percept)
     obstacle_left_value, obstacle_front_value, obstacle_right_value = get_sensor_readings()
@@ -81,15 +98,38 @@ def movement_choice():
 
     # Fuzzy decision on which movement should be taken
     movement_value = fuzzy_system.output['movement']
+
+    return movement_value
 #==============================================================================
 
 #==============================================================================
 def main():
+    rclpy.init()
 
+    node = rclpy.create_node('movement_publisher')
+    publisher = node.create_publisher(String, '/cmd_vel', 10)
+
+    msg = String()
+
+    def timer_callback():
+        msg.data = movement_choice()
+        node.get_logger().info('Publishing: "%s"' % msg.data)
+        publisher.publish(msg)
+
+    timer_period = 0.5  # seconds
+    timer = node.create_timer(timer_period, timer_callback)
+
+    rclpy.spin(node)
+
+    # Destroy the timer attached to the node explicitly
+    # (optional - otherwise it will be done automatically
+    # when the garbage collector destroys the node object)
+    node.destroy_timer(timer)
+    node.destroy_node()
+    rclpy.shutdown()
 #==============================================================================
 
 #==============================================================================
 if __name__ == "__main__":
     main()
 #==============================================================================
-
