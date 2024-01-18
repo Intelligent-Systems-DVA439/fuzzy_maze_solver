@@ -76,12 +76,14 @@ def get_sensor_readings():
     node = rclpy.create_node('sensor_subscriber')
 
     # Subscribe to the topic for the lidar/LaserScan
-    subscription = node.create_subscription(String, '/scan', node.listener_callback, 10)
+    # ros2 topic info /scan
+    # https://www.youtube.com/watch?v=RFNNsDI2b6c&t=1s
+    subscription = node.create_subscription('sensor_msgs/msg/LaserScan', '/scan', node.listener_callback, 10)
     subscription  # prevent unused variable warning
 
     # The function executed each time a message is received
     def listener_callback(node, msg):
-        raw_sensor_data = msg.data
+        raw_sensor_data = msg.ranges
 
     # Spin until work is complete
     rclpy.spin(node)
