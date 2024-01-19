@@ -38,9 +38,9 @@ raw_sensor_data = [0 for x in range(360)]
 # Fuzzy variables
 
 # Define fuzzy input variables (sensors and their range of possible values)
-obstacle_left = ctrl.Antecedent(np.arange(0, 3.5, 0.01), 'obstacle_left')
-obstacle_front = ctrl.Antecedent(np.arange(0, 3.5, 0.01), 'obstacle_front')
-obstacle_right = ctrl.Antecedent(np.arange(0, 3.5, 0.01), 'obstacle_right')
+obstacle_left = ctrl.Antecedent(np.arange(0, 3.51, 0.01), 'obstacle_left')
+obstacle_front = ctrl.Antecedent(np.arange(0, 3.51, 0.01), 'obstacle_front')
+obstacle_right = ctrl.Antecedent(np.arange(0, 3.51, 0.01), 'obstacle_right')
 
 # Define fuzzy output variable (control signal and its range of possible values)
 linear_movement = ctrl.Consequent(np.arange(0, 0.26, 0.01), 'linear')
@@ -48,24 +48,24 @@ angular_movement = ctrl.Consequent(np.arange(-1.82, 1.82, 0.01), 'angular')
 
 # Define membership functions, using triangular and trapezoidal memberships
 # Sensor readings memberships
-obstacle_left['no'] = fuzz.trapmf(obstacle_left.universe, [0.25, 0.75, 1, 2]) # "Upper", created using the last value outside of range "to the right"
-obstacle_left['yes'] = fuzz.trapmf(obstacle_left.universe, [-1, 0, 0.25, 0.75]) # "Lower", created using the fist value as being outside of range "to the left"
+obstacle_left['yes'] = fuzz.trapmf(obstacle_left.universe, [-1, 0, 1, 2]) # "Lower", created using the fist value as being outside of range "to the left"
+obstacle_left['no'] = fuzz.trapmf(obstacle_left.universe, [1, 2, 3.5, 4.5]) # "Upper", created using the last value outside of range "to the right"
 
-obstacle_front['no'] = fuzz.trapmf(obstacle_left.universe, [0.25, 0.75, 1, 2]) # "Upper", created using the last value outside of range "to the right"
-obstacle_front['yes'] = fuzz.trapmf(obstacle_left.universe, [-1, 0, 0.25, 0.75]) # "Lower", created using the fist value as being outside of range "to the left"
+obstacle_front['yes'] = fuzz.trapmf(obstacle_left.universe, [-1, 0, 1, 2]) # "Lower", created using the fist value as being outside of range "to the left"
+obstacle_front['no'] = fuzz.trapmf(obstacle_left.universe, [1, 2, 3.5, 4.5]) # "Upper", created using the last value outside of range "to the right"
 
-obstacle_right['no'] = fuzz.trapmf(obstacle_left.universe, [0.25, 0.75, 1, 2]) # "Upper", created using the last value outside of range "to the right"
-obstacle_right['yes'] = fuzz.trapmf(obstacle_left.universe, [-1, 0, 0.25, 0.75]) # "Lower", created using the fist value as being outside of range "to the left"
+obstacle_right['yes'] = fuzz.trapmf(obstacle_left.universe, [-1, 0, 1, 2]) # "Lower", created using the fist value as being outside of range "to the left"
+obstacle_right['no'] = fuzz.trapmf(obstacle_left.universe, [1, 2, 3.5, 4.5]) # "Upper", created using the last value outside of range "to the right"
 
 # Control output memberships, use tirangular even at the edges since output has limits
 # Linear
-linear_movement['linear_stop'] = fuzz.trimf(linear_movement.universe, [0, 0.25, 0.75])
-linear_movement['linear_forward'] = fuzz.trimf(linear_movement.universe, [0.25, 0.75, 1])
+linear_movement['linear_stop'] = fuzz.trimf(linear_movement.universe, [0, 0.08, 0.13])
+linear_movement['linear_forward'] = fuzz.trimf(linear_movement.universe, [0.08, 0.13, 0.26])
 
 # Angular
-angular_movement['angular_left'] = fuzz.trimf(angular_movement.universe, [-1, -0.5, 0])
-angular_movement['angular_stop'] = fuzz.trimf(angular_movement.universe, [-0.5, 0, 0.5]) 
-angular_movement['angular_right'] = fuzz.trimf(angular_movement.universe, [0, 0.5, 1])
+angular_movement['angular_left'] = fuzz.trimf(angular_movement.universe, [-1.82, -1, 0])
+angular_movement['angular_stop'] = fuzz.trimf(angular_movement.universe, [-1, 0, 1]) 
+angular_movement['angular_right'] = fuzz.trimf(angular_movement.universe, [0, 1, 1.82])
 
 # Define fuzzy logic rules (always favor left)
 # Linear
@@ -128,12 +128,13 @@ def movement_choice():
 
     if(np_sensor_data.size != 0):
         # Provide sensor values to fuzzy system
+        # Lidar values go counter clockwise and start infront of the robot
         # Left value is min value of a 105 degree cone to the left
-        fuzzy_system.input['obstacle_left'] = np.min(np_sensor_data[-135:-31])
+        fuzzy_system.input['obstacle_left'] = np.min(np_sensor_data[31:100])
         # Front value is min value of a 60 degree cone forward
         fuzzy_system.input['obstacle_front'] = np.min(np.concatenate((np_sensor_data[-30:], np_sensor_data[0:30]), axis=None))
         # Right value is min value of a 105 degree cone to the right
-        fuzzy_system.input['obstacle_right'] = np.min(np_sensor_data[31:135])
+        fuzzy_system.input['obstacle_right'] = np.min(np_sensor_data[-100:-31])
 
         # Fuzzy computation
         fuzzy_system.compute()
