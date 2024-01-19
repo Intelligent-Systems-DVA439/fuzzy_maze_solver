@@ -84,7 +84,6 @@ def get_sensor_readings():
     # Subscribe to the topic for the lidar/LaserScan
     # ros2 topic info /scan
     # https://www.youtube.com/watch?v=RFNNsDI2b6c&t=1s
-    #subscription = node.create_subscription('sensor_msgs/msg/LaserScan', '/scan', listener_callback, 10)
     subscription = node.create_subscription(LaserScan, '/scan', listener_callback, 10)
     subscription  # prevent unused variable warning
 
@@ -100,12 +99,15 @@ def get_sensor_readings():
 # Maze solver, decide which movement should be taken
 def movement_choice():
     # Get sensor values (percept)
-    raw_sensor_data
+    np_sensor_data = np.array(raw_sensor_data)
 
     # Provide sensor values to fuzzy system
-    fuzzy_system.input['obstacle_left'] = obstacle_left_value
-    fuzzy_system.input['obstacle_front'] = obstacle_front_value
-    fuzzy_system.input['obstacle_right'] = obstacle_right_value
+    # Left value is min value of a 105 degree cone to the left
+    fuzzy_system.input['obstacle_left'] = np.min(np_sensor_data[-31:-135])
+    # Front value is min value of a 60 degree cone forward
+    fuzzy_system.input['obstacle_front'] = np.min(np.concatenate((np_sensor_data[-30:], np_sensor_data[0:30]), axis=None))
+    # Right value is min value of a 105 degree cone to the right
+    fuzzy_system.input['obstacle_right'] = np.min(np_sensor_dat[31:135])
 
     # Fuzzy computation
     fuzzy_system.compute()
@@ -121,6 +123,9 @@ def main():
     # Initialize
     rclpy.init()
 
+    # Start taking sensor values
+    # TODO: NEEDS TO BE A SEPERATE THREAD WHICH CONSTANTLY WRITES TO GLOBAL VARIABLE raw_sensor_data
+    get_sensor_readings()
 
     while(1):
         # Create publisher node
