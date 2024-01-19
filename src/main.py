@@ -1,8 +1,11 @@
-#! /usr/bin/env python
+#! /usr/bin/env python3
+
 # main.py
 #==============================================================================
 # Author: Carl Larsson
 # Description: AI maze solver
+# To start the gazebo simulation run:
+# ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py
 # Date: 16-01-2024
 
 # This software is licensed under the MIT License
@@ -12,58 +15,78 @@
 
 #------------------------------------------------------------------------------
 # Libraries
+import math
+import threading
 import numpy as np
 import skfuzzy as fuzz
 from skfuzzy import control as ctrl
 
 import rclpy
-from std_msgs.msg import String
+# laser scan message struct
 from sensor_msgs.msg import LaserScan
+# Movement message struct
+from geometry_msgs.msg import Twist
 #------------------------------------------------------------------------------
 
 
 #------------------------------------------------------------------------------
 # Global variables
+
+# Global value to receive sensor message from turtlebot
 raw_sensor_data = None
 #------------------------------------------------------------------------------
 # Fuzzy variables
 
 # Define fuzzy input variables (sensors and their range of possible values)
-obstacle_left = ctrl.Antecedent(np.arange(0, 2, 1), 'obstacle_left')
-obstacle_front = ctrl.Antecedent(np.arange(0, 2, 1), 'obstacle_front')
-obstacle_right = ctrl.Antecedent(np.arange(0, 2, 1), 'obstacle_right')
+obstacle_left = ctrl.Antecedent(np.arange(0, 3.5, 0.01), 'obstacle_left')
+obstacle_front = ctrl.Antecedent(np.arange(0, 3.5, 0.01), 'obstacle_front')
+obstacle_right = ctrl.Antecedent(np.arange(0, 3.5, 0.01), 'obstacle_right')
 
 # Define fuzzy output variable (control signal and its range of possible values)
-movement = ctrl.Consequent(np.arange(-1, 2, 1), 'movement')
+linear_movement = ctrl.Consequent(np.arange(0, 0.26, 0.01), 'linear')
+angular_movement = ctrl.Consequent(np.arange(-1.82, 1.82, 0.01), 'angular')
 
 # Define membership functions, using triangular and trapezoidal memberships
 # Sensor readings memberships
-obstacle_left['no'] = fuzz.trapmf(obstacle_left.universe, [0.5, 0.7, 1, 2]) # "Upper", created using the last value outside of range "to the right"
-obstacle_left['yes'] = fuzz.trapmf(obstacle_left.universe, [-1, 0, 0,3, 0,5]) # "Lower", created using the fist value as being outside of range "to the left"
+obstacle_left['no'] = fuzz.trapmf(obstacle_left.universe, [1, 2, 3.5, math.inf]) # "Upper", created using the last value outside of range "to the right"
+obstacle_left['yes'] = fuzz.trapmf(obstacle_left.universe, [-math.inf, 0, 0.75, 1.5]) # "Lower", created using the fist value as being outside of range "to the left"
 
-obstacle_front['no'] = fuzz.trapmf(obstacle_left.universe, [0.5, 0.7, 1, 2]) # "Upper", created using the last value outside of range "to the right"
-obstacle_front['yes'] = fuzz.trapmf(obstacle_left.universe, [-1, 0, 0,3, 0,5]) # "Lower", created using the fist value as being outside of range "to the left"
+obstacle_front['no'] = fuzz.trapmf(obstacle_left.universe, [1, 2, 3.5, math.inf]) # "Upper", created using the last value outside of range "to the right"
+obstacle_front['yes'] = fuzz.trapmf(obstacle_left.universe, [-math.inf, 0, 0.75, 1.5]) # "Lower", created using the fist value as being outside of range "to the left"
 
-obstacle_right['no'] = fuzz.trapmf(obstacle_left.universe, [0.5, 0.7, 1, 2]) # "Upper", created using the last value outside of range "to the right"
-obstacle_right['yes'] = fuzz.trapmf(obstacle_left.universe, [-1, 0, 0,3, 0,5]) # "Lower", created using the fist value as being outside of range "to the left"
+obstacle_right['no'] = fuzz.trapmf(obstacle_left.universe, [1, 2, 3.5, math.inf]) # "Upper", created using the last value outside of range "to the right"
+obstacle_right['yes'] = fuzz.trapmf(obstacle_left.universe, [-math.inf, 0, 0.75, 1.5]) # "Lower", created using the fist value as being outside of range "to the left"
 
 # Control output memberships, use tirangular even at the edges since output has limits
-movement['turn_left'] = fuzz.trimf(movement.universe, [-1, -0.5, 0]) # "Lower", created using the fist value as being outside of range "to the left"
-movement['forward'] = fuzz.trimf(movement.universe, [-0.5, 0, 0.5])
-movement['turn_right'] = fuzz.trimf(movement.universe, [0, 0.5, 1]) # "Upper", created using the last value outside of range "to the right"
+linear_movement['linear_stop'] = fuzz.trimf(linear_movement.universe, [0, 0, 0.13])
+linear_movement['linear_forward'] = fuzz.trimf(linear_movement.universe, [0, 0.13, 0.26])
+angular_movement['angular_left'] = fuzz.trimf(angular_movement.universe, [-1.82, -1, 0])
+angular_movement['angular_stop'] = fuzz.trimf(angular_movement.universe, [-0.5, 0, 0.5]) 
+angular_movement['angular_right'] = fuzz.trimf(angular_movement.universe, [0, 1, 1.82])
 
 # Define fuzzy logic rules (always favor left)
-rule1 = ctrl.Rule(obstacle_left['no'] & obstacle_front['no'] & obstacle_right['no'], movement['forward'])
-rule2 = ctrl.Rule(obstacle_left['yes'] & obstacle_front['no'] & obstacle_right['no'], movement['forward'])
-rule3 = ctrl.Rule(obstacle_left['no'] & obstacle_front['yes'] & obstacle_right['no'], movement['turn_left']) # Favor left
-rule4 = ctrl.Rule(obstacle_left['no'] & obstacle_front['no'] & obstacle_right['yes'], movement['forward'])
-rule5 = ctrl.Rule(obstacle_left['no'] & obstacle_front['yes'] & obstacle_right['yes'], movement['turn_left'])
-rule6 = ctrl.Rule(obstacle_left['yes'] & obstacle_front['no'] & obstacle_right['yes'], movement['forward'])
-rule7 = ctrl.Rule(obstacle_left['yes'] & obstacle_front['yes'] & obstacle_right['no'], movement['turn_right'])
-rule8 = ctrl.Rule(obstacle_left['yes'] & obstacle_front['yes'] & obstacle_right['yes'], movement['turn_left']) # Favor left
+# Linear
+rule1 = ctrl.Rule(obstacle_left['no'] & obstacle_front['no'] & obstacle_right['no'], linear_movement['linear_forward'])
+rule2 = ctrl.Rule(obstacle_left['yes'] & obstacle_front['no'] & obstacle_right['no'], linear_movement['linear_forward'])
+rule3 = ctrl.Rule(obstacle_left['no'] & obstacle_front['yes'] & obstacle_right['no'], linear_movement['linear_stop'])
+rule4 = ctrl.Rule(obstacle_left['no'] & obstacle_front['no'] & obstacle_right['yes'], linear_movement['linear_forward'])
+rule5 = ctrl.Rule(obstacle_left['no'] & obstacle_front['yes'] & obstacle_right['yes'], linear_movement['linear_stop'])
+rule6 = ctrl.Rule(obstacle_left['yes'] & obstacle_front['no'] & obstacle_right['yes'], linear_movement['linear_forward'])
+rule7 = ctrl.Rule(obstacle_left['yes'] & obstacle_front['yes'] & obstacle_right['no'], linear_movement['linear_stop'])
+rule8 = ctrl.Rule(obstacle_left['yes'] & obstacle_front['yes'] & obstacle_right['yes'], linear_movement['linear_stop'])
+# Angular
+rule9 = ctrl.Rule(obstacle_left['no'] & obstacle_front['no'] & obstacle_right['no'], angular_movement['angular_stop'])
+rule10 = ctrl.Rule(obstacle_left['yes'] & obstacle_front['no'] & obstacle_right['no'], angular_movement['angular_right'])
+rule11 = ctrl.Rule(obstacle_left['no'] & obstacle_front['yes'] & obstacle_right['no'], angular_movement['angular_left']) # Favor left
+rule12 = ctrl.Rule(obstacle_left['no'] & obstacle_front['no'] & obstacle_right['yes'], angular_movement['angular_left'])
+rule13 = ctrl.Rule(obstacle_left['no'] & obstacle_front['yes'] & obstacle_right['yes'], angular_movement['angular_left'])
+rule14 = ctrl.Rule(obstacle_left['yes'] & obstacle_front['no'] & obstacle_right['yes'], angular_movement['angular_stop'])
+rule15 = ctrl.Rule(obstacle_left['yes'] & obstacle_front['yes'] & obstacle_right['no'], angular_movement['angular_right'])
+rule16 = ctrl.Rule(obstacle_left['yes'] & obstacle_front['yes'] & obstacle_right['yes'], angular_movement['angular_left']) # Favor left
+
 
 # Create fuzzy control system
-fuzzy_ctrl = ctrl.ControlSystem([rule1, rule2, rule3, rule4, rule5, rule6, rule7, rule8])
+fuzzy_ctrl = ctrl.ControlSystem([rule1, rule2, rule3, rule4, rule5, rule6, rule7, rule8, rule9, rule10, rule11, rule12, rule13, rule14, rule15, rule16])
 fuzzy_system = ctrl.ControlSystemSimulation(fuzzy_ctrl)
 #------------------------------------------------------------------------------
 
@@ -71,9 +94,6 @@ fuzzy_system = ctrl.ControlSystemSimulation(fuzzy_ctrl)
 #==============================================================================
 # Get sensor readings
 def get_sensor_readings():
-    # Initialize
-    rclpy.init()
-
     # Create subscriber/listener node
     node = rclpy.create_node('sensor_subscriber')
 
@@ -101,60 +121,70 @@ def movement_choice():
     # Get sensor values (percept)
     np_sensor_data = np.array(raw_sensor_data)
 
-    # Provide sensor values to fuzzy system
-    # Left value is min value of a 105 degree cone to the left
-    fuzzy_system.input['obstacle_left'] = np.min(np_sensor_data[-31:-135])
-    # Front value is min value of a 60 degree cone forward
-    fuzzy_system.input['obstacle_front'] = np.min(np.concatenate((np_sensor_data[-30:], np_sensor_data[0:30]), axis=None))
-    # Right value is min value of a 105 degree cone to the right
-    fuzzy_system.input['obstacle_right'] = np.min(np_sensor_dat[31:135])
+    if(np_sensor_data.size != 0):
+        # Provide sensor values to fuzzy system
+        # Left value is min value of a 105 degree cone to the left
+        fuzzy_system.input['obstacle_left'] = np.min(np_sensor_data[-135:-31])
+        # Front value is min value of a 60 degree cone forward
+        fuzzy_system.input['obstacle_front'] = np.min(np.concatenate((np_sensor_data[-30:], np_sensor_data[0:30]), axis=None))
+        # Right value is min value of a 105 degree cone to the right
+        fuzzy_system.input['obstacle_right'] = np.min(np_sensor_dat[31:135])
 
-    # Fuzzy computation
-    fuzzy_system.compute()
+        # Fuzzy computation
+        fuzzy_system.compute()
 
-    # Fuzzy decision on which movement should be taken
-    movement_value = fuzzy_system.output['movement']
+        # Fuzzy decision on which movement should be taken
+        linear_value = fuzzy_system.output['linear']
+        angular_value = fuzzy_system.output['angular']
 
-    return movement_value
+        return linear_value, angular_value
+
+    return 0, 0
 #==============================================================================
 
 #==============================================================================
-def main():
-    # Initialize
-    rclpy.init()
+# Controls turtlebot in gazebo
+def robot_control():
+    # Create publisher node
+    # https://www.youtube.com/watch?v=yEwi1__NJrE
+    node = rclpy.create_node('movement_publisher')
+    # Publish on command topic
+    publisher = node.create_publisher(Twist, '/cmd_vel', 10)
 
-    # Start taking sensor values
-    # TODO: NEEDS TO BE A SEPERATE THREAD WHICH CONSTANTLY WRITES TO GLOBAL VARIABLE raw_sensor_data
-    get_sensor_readings()
+    # set message to correct struct type
+    msg = Twist()
 
     while(1):
-        # Create publisher node
-        node = rclpy.create_node('movement_publisher')
-        # Publish on command topic
-        publisher = node.create_publisher(String, '/cmd_vel', 10)
+        # Decide which linear and angular movement should be taken
+        linear_value, angular_value = movement_choice()
+        msg.linear.x = linear_value
+        msg.angular.z = angular_value
+        # Send message
+        publisher.publish(msg)
 
-        msg = String()
-
-        # What to do every time timer goes off
-        def timer_callback():
-            msg.data = movement_choice()
-            # Echo what the message contains
-            node.get_logger().info('Publishing: "%s"' % msg.data)
-            # Send message
-            publisher.publish(msg)
-
-        # Send command every 0.5 seconds
-        timer_period = 0.5  # seconds
-        timer = node.create_timer(timer_period, timer_callback)
-
-        # Spin until work is complete
-        rclpy.spin(node)
-
-
-    # Destroy the timer attached to the node explicitly
-    node.destroy_timer(timer)
+    # Destroy node explicitly
     node.destroy_node()
     rclpy.shutdown()
+#==============================================================================
+
+#==============================================================================
+# Main
+def main():
+    # Initialize rclpy
+    rclpy.init()
+
+    # Create thread for taking sensor values
+    t1 = threading.Thread(target=get_sensor_readings, name='t1')
+    # Create thread for controling robot
+    t2 = threading.Thread(target=robot_control, name='t2')
+
+    # Start threads
+    t1.start()
+    t2.start()
+
+    # Close threads once completed
+    t1.join()
+    t2.join()
 #==============================================================================
 
 #==============================================================================
