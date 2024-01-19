@@ -1,3 +1,4 @@
+#! /usr/bin/env python
 # main.py
 #==============================================================================
 # Author: Carl Larsson
@@ -17,6 +18,7 @@ from skfuzzy import control as ctrl
 
 import rclpy
 from std_msgs.msg import String
+from sensor_msgs.msg import LaserScan
 #------------------------------------------------------------------------------
 
 
@@ -75,15 +77,16 @@ def get_sensor_readings():
     # Create subscriber/listener node
     node = rclpy.create_node('sensor_subscriber')
 
+    # The function executed each time a message is received
+    def listener_callback(msg):
+        raw_sensor_data = msg.ranges
+
     # Subscribe to the topic for the lidar/LaserScan
     # ros2 topic info /scan
     # https://www.youtube.com/watch?v=RFNNsDI2b6c&t=1s
-    subscription = node.create_subscription('sensor_msgs/msg/LaserScan', '/scan', node.listener_callback, 10)
+    #subscription = node.create_subscription('sensor_msgs/msg/LaserScan', '/scan', listener_callback, 10)
+    subscription = node.create_subscription(LaserScan, '/scan', listener_callback, 10)
     subscription  # prevent unused variable warning
-
-    # The function executed each time a message is received
-    def listener_callback(node, msg):
-        raw_sensor_data = msg.ranges
 
     # Spin until work is complete
     rclpy.spin(node)
