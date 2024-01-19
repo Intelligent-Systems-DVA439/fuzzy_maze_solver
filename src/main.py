@@ -33,7 +33,7 @@ from geometry_msgs.msg import Twist
 # Global variables
 
 # Global value to receive sensor message from turtlebot
-raw_sensor_data = None
+raw_sensor_data = [0 for x in range(360)]
 #------------------------------------------------------------------------------
 # Fuzzy variables
 
@@ -48,21 +48,24 @@ angular_movement = ctrl.Consequent(np.arange(-1.82, 1.82, 0.01), 'angular')
 
 # Define membership functions, using triangular and trapezoidal memberships
 # Sensor readings memberships
-obstacle_left['no'] = fuzz.trapmf(obstacle_left.universe, [1, 2, 3.5, math.inf]) # "Upper", created using the last value outside of range "to the right"
-obstacle_left['yes'] = fuzz.trapmf(obstacle_left.universe, [-math.inf, 0, 0.75, 1.5]) # "Lower", created using the fist value as being outside of range "to the left"
+obstacle_left['no'] = fuzz.trapmf(obstacle_left.universe, [0.25, 0.75, 1, 2]) # "Upper", created using the last value outside of range "to the right"
+obstacle_left['yes'] = fuzz.trapmf(obstacle_left.universe, [-1, 0, 0.25, 0.75]) # "Lower", created using the fist value as being outside of range "to the left"
 
-obstacle_front['no'] = fuzz.trapmf(obstacle_left.universe, [1, 2, 3.5, math.inf]) # "Upper", created using the last value outside of range "to the right"
-obstacle_front['yes'] = fuzz.trapmf(obstacle_left.universe, [-math.inf, 0, 0.75, 1.5]) # "Lower", created using the fist value as being outside of range "to the left"
+obstacle_front['no'] = fuzz.trapmf(obstacle_left.universe, [0.25, 0.75, 1, 2]) # "Upper", created using the last value outside of range "to the right"
+obstacle_front['yes'] = fuzz.trapmf(obstacle_left.universe, [-1, 0, 0.25, 0.75]) # "Lower", created using the fist value as being outside of range "to the left"
 
-obstacle_right['no'] = fuzz.trapmf(obstacle_left.universe, [1, 2, 3.5, math.inf]) # "Upper", created using the last value outside of range "to the right"
-obstacle_right['yes'] = fuzz.trapmf(obstacle_left.universe, [-math.inf, 0, 0.75, 1.5]) # "Lower", created using the fist value as being outside of range "to the left"
+obstacle_right['no'] = fuzz.trapmf(obstacle_left.universe, [0.25, 0.75, 1, 2]) # "Upper", created using the last value outside of range "to the right"
+obstacle_right['yes'] = fuzz.trapmf(obstacle_left.universe, [-1, 0, 0.25, 0.75]) # "Lower", created using the fist value as being outside of range "to the left"
 
 # Control output memberships, use tirangular even at the edges since output has limits
-linear_movement['linear_stop'] = fuzz.trimf(linear_movement.universe, [0, 0, 0.13])
-linear_movement['linear_forward'] = fuzz.trimf(linear_movement.universe, [0, 0.13, 0.26])
-angular_movement['angular_left'] = fuzz.trimf(angular_movement.universe, [-1.82, -1, 0])
+# Linear
+linear_movement['linear_stop'] = fuzz.trimf(linear_movement.universe, [0, 0.25, 0.75])
+linear_movement['linear_forward'] = fuzz.trimf(linear_movement.universe, [0.25, 0.75, 1])
+
+# Angular
+angular_movement['angular_left'] = fuzz.trimf(angular_movement.universe, [-1, -0.5, 0])
 angular_movement['angular_stop'] = fuzz.trimf(angular_movement.universe, [-0.5, 0, 0.5]) 
-angular_movement['angular_right'] = fuzz.trimf(angular_movement.universe, [0, 1, 1.82])
+angular_movement['angular_right'] = fuzz.trimf(angular_movement.universe, [0, 0.5, 1])
 
 # Define fuzzy logic rules (always favor left)
 # Linear
@@ -99,6 +102,8 @@ def get_sensor_readings():
 
     # The function executed each time a message is received
     def listener_callback(msg):
+        global raw_sensor_data
+
         raw_sensor_data = msg.ranges
 
     # Subscribe to the topic for the lidar/LaserScan
@@ -128,7 +133,7 @@ def movement_choice():
         # Front value is min value of a 60 degree cone forward
         fuzzy_system.input['obstacle_front'] = np.min(np.concatenate((np_sensor_data[-30:], np_sensor_data[0:30]), axis=None))
         # Right value is min value of a 105 degree cone to the right
-        fuzzy_system.input['obstacle_right'] = np.min(np_sensor_dat[31:135])
+        fuzzy_system.input['obstacle_right'] = np.min(np_sensor_data[31:135])
 
         # Fuzzy computation
         fuzzy_system.compute()
