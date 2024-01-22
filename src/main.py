@@ -19,6 +19,7 @@
 import math
 import threading
 import numpy as np
+from numpy import inf
 import skfuzzy as fuzz
 from skfuzzy import control as ctrl
 
@@ -134,17 +135,18 @@ def get_sensor_readings():
 def movement_choice():
     # Get sensor values (percept)
     np_sensor_data = np.array(raw_sensor_data)
+    np_sensor_data[np_sensor_data == inf] = 3.5
 
     # Make sure array isn't empty
     if(np_sensor_data.size != 0):
         # Provide sensor values to fuzzy system
         # Lidar values go counter clockwise and start infront of the robot
         # Left value is min value of a 80 degree cone to the left
-        fuzzy_system.input['obstacle_left'] = np.min(np_sensor_data[11:90])
+        fuzzy_system.input['obstacle_left'] = np.mean(np_sensor_data[11:90])
         # Front value is min value of a 20 degree cone forward
         fuzzy_system.input['obstacle_front'] = np.min(np.concatenate((np_sensor_data[-10:], np_sensor_data[0:10]), axis=None))
         # Right value is min value of a 80 degree cone to the right
-        fuzzy_system.input['obstacle_right'] = np.min(np_sensor_data[-90:-11])
+        fuzzy_system.input['obstacle_right'] = np.mean(np_sensor_data[-90:-11])
 
         # Fuzzy computation
         fuzzy_system.compute()
