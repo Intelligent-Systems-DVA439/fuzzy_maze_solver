@@ -56,8 +56,8 @@ angular_movement = ctrl.Consequent(np.arange(-1.82, 1.82, 0.01), 'angular')
 obstacle_left['yes'] = fuzz.trapmf(obstacle_left.universe, [-math.inf, 0, 0.7, 1.4]) # "Lower", created using the fist value as being outside of range "to the left"
 obstacle_left['no'] = fuzz.trapmf(obstacle_left.universe, [0.7, 1.4, 3.5, math.inf]) # "Upper", created using the last value outside of range "to the right"
 
-obstacle_front['yes'] = fuzz.trapmf(obstacle_left.universe, [-math.inf, 0, 0.5, 1]) # "Lower", created using the fist value as being outside of range "to the left"
-obstacle_front['no'] = fuzz.trapmf(obstacle_left.universe, [0.5, 1, 3.5, math.inf]) # "Upper", created using the last value outside of range "to the right"
+obstacle_front['yes'] = fuzz.trapmf(obstacle_left.universe, [-math.inf, 0, 0.25, 1]) # "Lower", created using the fist value as being outside of range "to the left"
+obstacle_front['no'] = fuzz.trapmf(obstacle_left.universe, [0.25, 1, 3.5, math.inf]) # "Upper", created using the last value outside of range "to the right"
 
 obstacle_right['yes'] = fuzz.trapmf(obstacle_left.universe, [-math.inf, 0, 0.7, 1.4]) # "Lower", created using the fist value as being outside of range "to the left"
 obstacle_right['no'] = fuzz.trapmf(obstacle_left.universe, [0.7, 1.4, 3.5, math.inf]) # "Upper", created using the last value outside of range "to the right"
