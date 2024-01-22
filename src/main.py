@@ -53,14 +53,14 @@ angular_movement = ctrl.Consequent(np.arange(-1.82, 1.82, 0.01), 'angular')
 
 # Define membership functions, using triangular and trapezoidal memberships
 # Sensor readings memberships
-obstacle_left['yes'] = fuzz.trapmf(obstacle_left.universe, [-math.inf, 0, 0.875, 1.75]) # "Lower", created using the fist value as being outside of range "to the left"
-obstacle_left['no'] = fuzz.trapmf(obstacle_left.universe, [0.875, 1.75, 3.5, math.inf]) # "Upper", created using the last value outside of range "to the right"
+obstacle_left['yes'] = fuzz.trapmf(obstacle_left.universe, [-math.inf, 0, 0.7, 1.4]) # "Lower", created using the fist value as being outside of range "to the left"
+obstacle_left['no'] = fuzz.trapmf(obstacle_left.universe, [0.7, 1.4, 3.5, math.inf]) # "Upper", created using the last value outside of range "to the right"
 
-obstacle_front['yes'] = fuzz.trapmf(obstacle_left.universe, [-math.inf, 0, 0.875, 1.75]) # "Lower", created using the fist value as being outside of range "to the left"
-obstacle_front['no'] = fuzz.trapmf(obstacle_left.universe, [0.875, 1.75, 3.5, math.inf]) # "Upper", created using the last value outside of range "to the right"
+obstacle_front['yes'] = fuzz.trapmf(obstacle_left.universe, [-math.inf, 0, 0.5, 1]) # "Lower", created using the fist value as being outside of range "to the left"
+obstacle_front['no'] = fuzz.trapmf(obstacle_left.universe, [0.5, 1, 3.5, math.inf]) # "Upper", created using the last value outside of range "to the right"
 
-obstacle_right['yes'] = fuzz.trapmf(obstacle_left.universe, [-math.inf, 0, 0.875, 1.75]) # "Lower", created using the fist value as being outside of range "to the left"
-obstacle_right['no'] = fuzz.trapmf(obstacle_left.universe, [0.875, 1.75, 3.5, math.inf]) # "Upper", created using the last value outside of range "to the right"
+obstacle_right['yes'] = fuzz.trapmf(obstacle_left.universe, [-math.inf, 0, 0.7, 1.4]) # "Lower", created using the fist value as being outside of range "to the left"
+obstacle_right['no'] = fuzz.trapmf(obstacle_left.universe, [0.7, 1.4, 3.5, math.inf]) # "Upper", created using the last value outside of range "to the right"
 
 # Control output memberships, use tirangular even at the edges since output has limits
 # Linear
@@ -87,9 +87,9 @@ rule8 = ctrl.Rule(obstacle_left['yes'] & obstacle_front['yes'] & obstacle_right[
 
 # Angular
 rule9 = ctrl.Rule(obstacle_left['no'] & obstacle_front['no'] & obstacle_right['no'], angular_movement['angular_stop'])
-rule10 = ctrl.Rule(obstacle_left['yes'] & obstacle_front['no'] & obstacle_right['no'], angular_movement['angular_stop'])
+rule10 = ctrl.Rule(obstacle_left['yes'] & obstacle_front['no'] & obstacle_right['no'], angular_movement['angular_right'])
 rule11 = ctrl.Rule(obstacle_left['no'] & obstacle_front['yes'] & obstacle_right['no'], angular_movement['angular_left']) # Favor left
-rule12 = ctrl.Rule(obstacle_left['no'] & obstacle_front['no'] & obstacle_right['yes'], angular_movement['angular_stop'])
+rule12 = ctrl.Rule(obstacle_left['no'] & obstacle_front['no'] & obstacle_right['yes'], angular_movement['angular_left'])
 rule13 = ctrl.Rule(obstacle_left['no'] & obstacle_front['yes'] & obstacle_right['yes'], angular_movement['angular_left'])
 rule14 = ctrl.Rule(obstacle_left['yes'] & obstacle_front['no'] & obstacle_right['yes'], angular_movement['angular_stop'])
 rule15 = ctrl.Rule(obstacle_left['yes'] & obstacle_front['yes'] & obstacle_right['no'], angular_movement['angular_right'])
