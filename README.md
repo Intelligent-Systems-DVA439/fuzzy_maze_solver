@@ -12,6 +12,9 @@ Open source implementation of an AI maze solver in python using fuzzy
 + python 3.10.12
 + numpy 1.23.5 
 + scikit-fuzzy 0.4.2 
++ rclpy 3.3.11
++ math
++ threading
 + TurtleBot3 Humble https://emanual.robotis.com/docs/en/platform/turtlebot3/quick-start/
 
 

@@ -4,9 +4,6 @@
 #==============================================================================
 # Author: Carl Larsson
 # Description: AI maze solver
-# To start the gazebo simulation run:
-# export TURTLEBOT3_MODEL=waffle
-# ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py
 # Date: 16-01-2024
 
 # This software is licensed under the MIT License
