@@ -5,6 +5,7 @@
 # Author: Carl Larsson
 # Description: AI maze solver
 # To start the gazebo simulation run:
+# export TURTLEBOT3_MODEL=waffle
 # ros2 launch turtlebot3_gazebo turtlebot3_world.launch.py
 # Date: 16-01-2024
 
@@ -48,14 +49,14 @@ angular_movement = ctrl.Consequent(np.arange(-1.82, 1.82, 0.01), 'angular')
 
 # Define membership functions, using triangular and trapezoidal memberships
 # Sensor readings memberships
-obstacle_left['yes'] = fuzz.trapmf(obstacle_left.universe, [-1, 0, 0.5, 1]) # "Lower", created using the fist value as being outside of range "to the left"
-obstacle_left['no'] = fuzz.trapmf(obstacle_left.universe, [0.5, 1, 3.5, 4.5]) # "Upper", created using the last value outside of range "to the right"
+obstacle_left['yes'] = fuzz.trapmf(obstacle_left.universe, [-1, 0, 0.875, 1.75]) # "Lower", created using the fist value as being outside of range "to the left"
+obstacle_left['no'] = fuzz.trapmf(obstacle_left.universe, [0.875, 1.75, 3.5, 4.5]) # "Upper", created using the last value outside of range "to the right"
 
-obstacle_front['yes'] = fuzz.trapmf(obstacle_left.universe, [-1, 0, 0.5, 1]) # "Lower", created using the fist value as being outside of range "to the left"
-obstacle_front['no'] = fuzz.trapmf(obstacle_left.universe, [0.5, 1, 3.5, 4.5]) # "Upper", created using the last value outside of range "to the right"
+obstacle_front['yes'] = fuzz.trapmf(obstacle_left.universe, [-1, 0, 0.875, 1.75]) # "Lower", created using the fist value as being outside of range "to the left"
+obstacle_front['no'] = fuzz.trapmf(obstacle_left.universe, [0.875, 1.75, 3.5, 4.5]) # "Upper", created using the last value outside of range "to the right"
 
-obstacle_right['yes'] = fuzz.trapmf(obstacle_left.universe, [-1, 0, 0.5, 1]) # "Lower", created using the fist value as being outside of range "to the left"
-obstacle_right['no'] = fuzz.trapmf(obstacle_left.universe, [0.5, 1, 3.5, 4.5]) # "Upper", created using the last value outside of range "to the right"
+obstacle_right['yes'] = fuzz.trapmf(obstacle_left.universe, [-1, 0, 0.875, 1.75]) # "Lower", created using the fist value as being outside of range "to the left"
+obstacle_right['no'] = fuzz.trapmf(obstacle_left.universe, [0.875, 1.75, 3.5, 4.5]) # "Upper", created using the last value outside of range "to the right"
 
 # Control output memberships, use tirangular even at the edges since output has limits
 # Linear
