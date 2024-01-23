@@ -19,15 +19,19 @@ Open source implementation of an AI maze solver in python using fuzzy
 
 
 ## Usage
-To run the maze solver, first select turtlebot
+To run the maze solver, first source the setup file:
+```
+source /usr/share/gazebo/setup.sh
+```
+Then select turtlebot:
 ```
 export TURTLEBOT3_MODEL=waffle
 ```
-Launch Gazebo maze map (see maze repository)
+Launch Gazebo maze map (see maze repository):
 ```
 ros2 launch turtlebot3_gazebo maze.launch.py
 ```
-Start main file to start AI maze solver control of the turtlebot
+Start main file to start AI maze solver control of the turtlebot:
 ```
 ./main.py
 ```
