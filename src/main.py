@@ -39,9 +39,9 @@ raw_sensor_data = [0 for x in range(360)]
 
 # Fuzzy variables
 # Define fuzzy input variables (sensors and their range of possible values)
-obstacle_left = ctrl.Antecedent(np.arange(0, 3.51, 0.01), 'obstacle_left')
-obstacle_front = ctrl.Antecedent(np.arange(0, 3.51, 0.01), 'obstacle_front')
-obstacle_right = ctrl.Antecedent(np.arange(0, 3.51, 0.01), 'obstacle_right')
+left_sensor = ctrl.Antecedent(np.arange(0, 3.51, 0.01), 'left_sensor')
+front_sensor = ctrl.Antecedent(np.arange(0, 3.51, 0.01), 'front_sensor')
+right_sensor = ctrl.Antecedent(np.arange(0, 3.51, 0.01), 'right_sensor')
 
 # Define fuzzy output variable (control signal and its range of possible values)
 linear_movement = ctrl.Consequent(np.arange(0, 0.26, 0.01), 'linear')
@@ -50,14 +50,14 @@ angular_movement = ctrl.Consequent(np.arange(-1.82, 1.82, 0.01), 'angular')
 
 # Define membership functions, using triangular and trapezoidal memberships
 # Sensor readings memberships
-obstacle_left['yes'] = fuzz.trapmf(obstacle_left.universe, [-math.inf, 0, 0.7, 1.4]) # "Lower", created using the fist value as being outside of range "to the left"
-obstacle_left['no'] = fuzz.trapmf(obstacle_left.universe, [0.7, 1.4, 3.5, math.inf]) # "Upper", created using the last value outside of range "to the right"
+left_sensor['close'] = fuzz.trapmf(left_sensor.universe, [-math.inf, 0, 0.7, 1.4]) # "Lower", created using the fist value as being outside of range "to the left"
+left_sensor['far'] = fuzz.trapmf(left_sensor.universe, [0.7, 1.4, 3.5, math.inf]) # "Upper", created using the last value outside of range "to the right"
 
-obstacle_front['yes'] = fuzz.trapmf(obstacle_left.universe, [-math.inf, 0, 0.25, 1]) # "Lower", created using the fist value as being outside of range "to the left"
-obstacle_front['no'] = fuzz.trapmf(obstacle_left.universe, [0.25, 1, 3.5, math.inf]) # "Upper", created using the last value outside of range "to the right"
+front_sensor['close'] = fuzz.trapmf(left_sensor.universe, [-math.inf, 0, 0.25, 1]) # "Lower", created using the fist value as being outside of range "to the left"
+front_sensor['far'] = fuzz.trapmf(left_sensor.universe, [0.25, 1, 3.5, math.inf]) # "Upper", created using the last value outside of range "to the right"
 
-obstacle_right['yes'] = fuzz.trapmf(obstacle_left.universe, [-math.inf, 0, 0.7, 1.4]) # "Lower", created using the fist value as being outside of range "to the left"
-obstacle_right['no'] = fuzz.trapmf(obstacle_left.universe, [0.7, 1.4, 3.5, math.inf]) # "Upper", created using the last value outside of range "to the right"
+right_sensor['close'] = fuzz.trapmf(left_sensor.universe, [-math.inf, 0, 0.7, 1.4]) # "Lower", created using the fist value as being outside of range "to the left"
+right_sensor['far'] = fuzz.trapmf(left_sensor.universe, [0.7, 1.4, 3.5, math.inf]) # "Upper", created using the last value outside of range "to the right"
 
 # Control output memberships, use tirangular even at the edges since output has limits
 # Linear
@@ -73,24 +73,24 @@ angular_movement['angular_left'] = fuzz.trimf(angular_movement.universe, [0, 1, 
 
 # Define fuzzy logic rules (always favor left)
 # Linear
-rule1 = ctrl.Rule(obstacle_left['no'] & obstacle_front['no'] & obstacle_right['no'], linear_movement['linear_forward'])
-rule2 = ctrl.Rule(obstacle_left['yes'] & obstacle_front['no'] & obstacle_right['no'], linear_movement['linear_forward'])
-rule3 = ctrl.Rule(obstacle_left['no'] & obstacle_front['yes'] & obstacle_right['no'], linear_movement['linear_stop'])
-rule4 = ctrl.Rule(obstacle_left['no'] & obstacle_front['no'] & obstacle_right['yes'], linear_movement['linear_forward'])
-rule5 = ctrl.Rule(obstacle_left['no'] & obstacle_front['yes'] & obstacle_right['yes'], linear_movement['linear_stop'])
-rule6 = ctrl.Rule(obstacle_left['yes'] & obstacle_front['no'] & obstacle_right['yes'], linear_movement['linear_forward'])
-rule7 = ctrl.Rule(obstacle_left['yes'] & obstacle_front['yes'] & obstacle_right['no'], linear_movement['linear_stop'])
-rule8 = ctrl.Rule(obstacle_left['yes'] & obstacle_front['yes'] & obstacle_right['yes'], linear_movement['linear_stop'])
+rule1 = ctrl.Rule(left_sensor['far'] & front_sensor['far'] & right_sensor['far'], linear_movement['linear_forward'])
+rule2 = ctrl.Rule(left_sensor['close'] & front_sensor['far'] & right_sensor['far'], linear_movement['linear_forward'])
+rule3 = ctrl.Rule(left_sensor['far'] & front_sensor['close'] & right_sensor['far'], linear_movement['linear_stop'])
+rule4 = ctrl.Rule(left_sensor['far'] & front_sensor['far'] & right_sensor['close'], linear_movement['linear_forward'])
+rule5 = ctrl.Rule(left_sensor['far'] & front_sensor['close'] & right_sensor['close'], linear_movement['linear_stop'])
+rule6 = ctrl.Rule(left_sensor['close'] & front_sensor['far'] & right_sensor['close'], linear_movement['linear_forward'])
+rule7 = ctrl.Rule(left_sensor['close'] & front_sensor['close'] & right_sensor['far'], linear_movement['linear_stop'])
+rule8 = ctrl.Rule(left_sensor['close'] & front_sensor['close'] & right_sensor['close'], linear_movement['linear_stop'])
 
 # Angular
-rule9 = ctrl.Rule(obstacle_left['no'] & obstacle_front['no'] & obstacle_right['no'], angular_movement['angular_stop'])
-rule10 = ctrl.Rule(obstacle_left['yes'] & obstacle_front['no'] & obstacle_right['no'], angular_movement['angular_right'])
-rule11 = ctrl.Rule(obstacle_left['no'] & obstacle_front['yes'] & obstacle_right['no'], angular_movement['angular_left']) # Favor left
-rule12 = ctrl.Rule(obstacle_left['no'] & obstacle_front['no'] & obstacle_right['yes'], angular_movement['angular_left'])
-rule13 = ctrl.Rule(obstacle_left['no'] & obstacle_front['yes'] & obstacle_right['yes'], angular_movement['angular_left'])
-rule14 = ctrl.Rule(obstacle_left['yes'] & obstacle_front['no'] & obstacle_right['yes'], angular_movement['angular_stop'])
-rule15 = ctrl.Rule(obstacle_left['yes'] & obstacle_front['yes'] & obstacle_right['no'], angular_movement['angular_right'])
-rule16 = ctrl.Rule(obstacle_left['yes'] & obstacle_front['yes'] & obstacle_right['yes'], angular_movement['angular_left']) # Favor left
+rule9 = ctrl.Rule(left_sensor['far'] & front_sensor['far'] & right_sensor['far'], angular_movement['angular_stop'])
+rule10 = ctrl.Rule(left_sensor['close'] & front_sensor['far'] & right_sensor['far'], angular_movement['angular_right'])
+rule11 = ctrl.Rule(left_sensor['far'] & front_sensor['close'] & right_sensor['far'], angular_movement['angular_left']) # Favor left
+rule12 = ctrl.Rule(left_sensor['far'] & front_sensor['far'] & right_sensor['close'], angular_movement['angular_left'])
+rule13 = ctrl.Rule(left_sensor['far'] & front_sensor['close'] & right_sensor['close'], angular_movement['angular_left'])
+rule14 = ctrl.Rule(left_sensor['close'] & front_sensor['far'] & right_sensor['close'], angular_movement['angular_stop'])
+rule15 = ctrl.Rule(left_sensor['close'] & front_sensor['close'] & right_sensor['far'], angular_movement['angular_right'])
+rule16 = ctrl.Rule(left_sensor['close'] & front_sensor['close'] & right_sensor['close'], angular_movement['angular_left']) # Favor left
 
 
 # Create fuzzy control system
@@ -139,11 +139,11 @@ def movement_choice():
         # Provide sensor values to fuzzy system
         # Lidar values go counter clockwise and start infront of the robot
         # Left value is min value of a 80 degree cone to the left
-        fuzzy_system.input['obstacle_left'] = np.mean(np_sensor_data[11:90])
+        fuzzy_system.input['left_sensor'] = np.mean(np_sensor_data[11:90])
         # Front value is min value of a 20 degree cone forward
-        fuzzy_system.input['obstacle_front'] = np.min(np.concatenate((np_sensor_data[-10:], np_sensor_data[0:10]), axis=None))
+        fuzzy_system.input['front_sensor'] = np.min(np.concatenate((np_sensor_data[-10:], np_sensor_data[0:10]), axis=None))
         # Right value is min value of a 80 degree cone to the right
-        fuzzy_system.input['obstacle_right'] = np.mean(np_sensor_data[-90:-11])
+        fuzzy_system.input['right_sensor'] = np.mean(np_sensor_data[-90:-11])
 
         # Fuzzy computation
         fuzzy_system.compute()
