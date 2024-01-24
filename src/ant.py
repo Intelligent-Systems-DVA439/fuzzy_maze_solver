@@ -13,6 +13,9 @@
 
 #------------------------------------------------------------------------------
 # Libraries
+from antsys import AntWorld
+from antsys import AntSystem
+import numpy as np
 import networkx as nx
 import matplotlib.pyplot as plt
 import random
@@ -25,54 +28,9 @@ import random
 
 
 #==============================================================================
-def ant_colony_optimization_dynamic(reference_graph, num_ants, num_iterations):
-    graph = nx.Graph()
-    pheromone_map = {}
+# Ant colony optimization
+def ant_optimization():
 
-    def is_valid_move(current_node, next_node):
-        return reference_graph.has_edge(current_node, next_node)
-
-    # Ant moves
-    def ant_move(current_node):
-        neighbors = list(graph.neighbors(current_node))
-        valid_neighbors = [node for node in neighbors if is_valid_move(current_node, node)]
-        if valid_neighbors:
-            next_node = random.choice(valid_neighbors)
-        else:
-            next_node = current_node  # If no valid neighbors, stay in place
-        return next_node
-
-    best_path = None
-    best_path_length = float('inf')
-
-    for _ in range(num_iterations):
-        current_node = (9, 9)  # Start at the origin
-        path = [current_node]
-
-        while True:
-            next_node = ant_move(current_node)
-            if next_node == current_node:
-                break  # Stuck, backtrack
-            path.append(next_node)
-
-            if (current_node, next_node) not in pheromone_map:
-                graph.add_edge(current_node, next_node)
-                pheromone_map[(current_node, next_node)] = 1.0
-
-            current_node = next_node
-
-        # Update pheromone levels
-        for edge in graph.edges():
-            pheromone_map[edge] *= 0.9  # Decay pheromones over time
-            pheromone_map[edge] += 0.1  # Deposit new pheromones
-
-        # Update the best path if a shorter path is found
-        path_length = len(path)
-        if path_length < best_path_length:
-            best_path = path
-            best_path_length = path_length
-
-    return graph, best_path
 #==============================================================================
 
 #==============================================================================
@@ -80,7 +38,7 @@ def ant_colony_optimization_dynamic(reference_graph, num_ants, num_iterations):
 def generate_maze():
     maze_graph = nx.grid_2d_graph(20, 20)
 
-    # First coodrinate is y, second is x (i have no clue why)
+    # First coodrinate is y, second is x (rows and columns)
 
     # All outer walls
     for x in range(0, 20):
@@ -200,29 +158,33 @@ def generate_maze():
 
 #==============================================================================
 # Find optimal path through maze using ant colony optimization
-def optimal_path():
+def find_optimal_path():
     # Create reference maze
     ref_maze = generate_maze()
 
-    num_ants = 50
-    num_iterations = 1000
-    maze_ant, optimal_path = ant_colony_optimization_dynamic(ref_maze, num_ants, num_iterations)
+    # Ant colony parameters
+    num_ants = 5
+    num_iterations = 10
+    start_node = (9, 9)
+    goal_node = (16, 19)
+    maze_ant, optimal_path = ant_colony_optimization_dynamic(ref_maze, start_node, goal_node, num_ants, num_iterations)
 
-    # Visualize the reference maze and the ant map
+    # Visualize the reference maze and the ant map, and optimal path
     pos = {(x, y): (y, -x) for x, y in ref_maze.nodes()}
     nx.draw(ref_maze, pos, with_labels=True, font_size=8, node_size=755, node_color='lightgray', font_color='black', node_shape="s", label="Reference Maze")
     nx.draw(maze_ant, pos, with_labels=True, font_size=8, node_size=755, node_color='lightblue', font_color='black', node_shape="s", label="Dynamic Ant Maze Graph")
     nx.draw_networkx_edges(maze_ant, pos, edgelist=optimal_path, edge_color='red', width=2, label="Optimal Path")
-
     plt.title('Reference Maze and Ant Map')
     plt.legend()
     plt.show()
+
+    return optimal_path
 #==============================================================================
 
 #==============================================================================
 # Main
 def main():
-    optimal_path()
+    optimal_path = find_optimal_path()
 #==============================================================================
 
 #==============================================================================
