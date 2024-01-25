@@ -29,8 +29,14 @@ import random
 
 #==============================================================================
 # Ant colony optimization
-def ant_optimization():
+def ant_optimization(graph):
 
+    maze_world = AntWorld(items, maze_rules, maze_cost, maze_heuristic, True, 10)
+    ant_sys = AntSystem(world=maze_world, n_ants=100)
+    ant_sys.optimize(max_iter=100,n_iter_no_change=50, verbose=True)
+    print(ant_sys.g_best)
+
+    return ant_sys.g_best
 #==============================================================================
 
 #==============================================================================
