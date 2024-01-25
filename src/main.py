@@ -25,6 +25,8 @@ import rclpy
 from sensor_msgs.msg import LaserScan
 # Movement message struct
 from geometry_msgs.msg import Twist
+# Get turtlebot position
+from nav_msgs.msg import Odometry
 # To reset world
 from std_srvs.srv import Empty
 #------------------------------------------------------------------------------
@@ -34,6 +36,7 @@ from std_srvs.srv import Empty
 # Global variables
 
 # Global value to receive sensor data (distance/range) from turtlebot
+position = None
 raw_sensor_data = [0 for x in range(360)]
 #------------------------------------------------------------------------------
 # Fuzzy system
@@ -183,18 +186,54 @@ def robot_control():
 #==============================================================================
 
 #==============================================================================
+# Get turtlebot coordinates
+def get_coordinates():
+    # Create subscriber node for coordinates of turtlebot
+    node = rclpy.create_node('coordinates_subscriber')
+
+    # The function executed each time a message is received
+    def coordinate_callback(msg):
+        # Required so the array can be changed
+        global position
+
+        # Store data in a global array
+        position = msg.pose.pose.position
+
+    # Subscribe to the topic for the turtlebot coordinates
+    subscription = node.create_subscription(Odometry, 'odom', coordinate_callback, 10)
+    subscription  # prevent unused variable warning
+
+    # Create new executor since only one can run on the global
+    executor = rclpy.executors.SingleThreadedExecutor()
+    executor.add_node(node)
+
+    # Spin until work is complete
+    rclpy.spin(node, executor)
+
+    # Destroy the node explicitly
+    node.destroy_node()
+    rclpy.shutdown()
+#==============================================================================
+
+#==============================================================================
 # Reset simulation
 def reset_simulation():
     # Create service reset node
     node = rclpy.create_node('service_reset')
     reset_world = node.create_client(Empty, '/reset_world')
+    # Wait until reset service is ready
     reset_world.wait_for_service()
-
+    # Reset request
     request = Empty.Request()
 
+    # Wait until position has a value (aka until a turtlebot position has been received)
+    while(position == None):
+        pass
+
+    # Continously check if turtlebot has made it out of the maze
     while(1):
         # Reset simulation once goal is reached
-        if(1 > 2):
+        if((position.x > 10) | (position.x < -10) | (position.y > 10) | (position.y < -10)):
             print("Goal reached, reseting")
             reset_world.call_async(request)
 
@@ -216,16 +255,20 @@ def main():
     t2 = threading.Thread(target=robot_control, name='t2')
     # Thread for reseting once goal is reached
     t3 = threading.Thread(target=reset_simulation, name='t3')
+    # Thread for getting turtlebot coordinates
+    t4 = threading.Thread(target=get_coordinates, name='t4')
 
     # Start threads
     t1.start()
     t2.start()
     t3.start()
+    t4.start()
 
     # Close threads once completed
     t1.join()
     t2.join()
     t3.join()
+    t4.join()
 #==============================================================================
 
 #==============================================================================
