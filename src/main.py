@@ -129,29 +129,30 @@ def get_sensor_readings():
 def movement_choice():
     # Get sensor values (percept)
     np_sensor_data = np.array(raw_sensor_data)
+
+    # Stuck until sensor has been initialized and sensor values have been received
+    while(np.all(np_sensor_data == 0)):
+        np_sensor_data = np.array(raw_sensor_data)
+
     np_sensor_data[np_sensor_data == inf] = 3.5
 
-    # Make sure array isn't empty
-    if(np_sensor_data.size != 0):
-        # Provide sensor values to fuzzy system
-        # Lidar values go counter clockwise and start infront of the robot
-        # Left value is min value of a 80 degree cone to the left
-        fuzzy_system.input['left_sensor'] = np.mean(np_sensor_data[11:90])
-        # Front value is min value of a 20 degree cone forward
-        fuzzy_system.input['front_sensor'] = np.min(np.concatenate((np_sensor_data[-10:], np_sensor_data[0:10]), axis=None))
-        # Right value is min value of a 80 degree cone to the right
-        fuzzy_system.input['right_sensor'] = np.mean(np_sensor_data[-90:-11])
+    # Provide sensor values to fuzzy system
+    # Lidar values go counter clockwise and start infront of the robot
+    # Left value is min value of a 80 degree cone to the left
+    fuzzy_system.input['left_sensor'] = np.mean(np_sensor_data[11:90])
+    # Front value is min value of a 20 degree cone forward
+    fuzzy_system.input['front_sensor'] = np.min(np.concatenate((np_sensor_data[-10:], np_sensor_data[0:10]), axis=None))
+    # Right value is min value of a 80 degree cone to the right
+    fuzzy_system.input['right_sensor'] = np.mean(np_sensor_data[-90:-11])
 
-        # Fuzzy computation
-        fuzzy_system.compute()
+    # Fuzzy computation
+    fuzzy_system.compute()
 
-        # Fuzzy decision on which movement should be taken
-        linear_value = fuzzy_system.output['linear']
-        angular_value = fuzzy_system.output['angular']
+    # Fuzzy decision on which movement should be taken
+    linear_value = fuzzy_system.output['linear']
+    angular_value = fuzzy_system.output['angular']
 
-        return linear_value, angular_value
-
-    return 0, 0
+    return linear_value, angular_value
 #==============================================================================
 
 #==============================================================================
