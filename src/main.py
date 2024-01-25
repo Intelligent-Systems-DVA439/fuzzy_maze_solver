@@ -25,6 +25,8 @@ import rclpy
 from sensor_msgs.msg import LaserScan
 # Movement message struct
 from geometry_msgs.msg import Twist
+# To reset world
+from std_srvs.srv import Empty
 #------------------------------------------------------------------------------
 
 
@@ -181,6 +183,28 @@ def robot_control():
 #==============================================================================
 
 #==============================================================================
+# Reset simulation
+def reset_simulation():
+    # Create service reset node
+    node = rclpy.create_node('service_reset')
+    reset_world = node.create_client(Empty, '/reset_world')
+    reset_world.wait_for_service()
+
+    request = Empty.Request()
+
+    while(1):
+        # Reset simulation once goal is reached
+        if(1 > 2):
+            print("Goal reached, reseting")
+            reset_world.call_async(request)
+
+
+    # Shutdown the ROS node
+    node.destroy_node()
+    rclpy.shutdown()
+#==============================================================================
+
+#==============================================================================
 # Main
 def main():
     # Initialize rclpy
@@ -190,14 +214,18 @@ def main():
     t1 = threading.Thread(target=get_sensor_readings, name='t1')
     # Create thread for controling robot
     t2 = threading.Thread(target=robot_control, name='t2')
+    # Thread for reseting once goal is reached
+    t3 = threading.Thread(target=reset_simulation, name='t3')
 
     # Start threads
     t1.start()
     t2.start()
+    t3.start()
 
     # Close threads once completed
     t1.join()
     t2.join()
+    t3.join()
 #==============================================================================
 
 #==============================================================================
