@@ -59,12 +59,12 @@ angular_movement = ctrl.Consequent(np.arange(-1.82, 1.82, 0.01), 'angular')
 left_sensor['close'] = fuzz.trapmf(left_sensor.universe, [-math.inf, 0, 0.4, 1.4]) # "Lower", created using the fist value as being outside of range "to the left"
 left_sensor['far'] = fuzz.trapmf(left_sensor.universe, [0.4, 1.4, 3.5, math.inf]) # "Upper", created using the last value outside of range "to the right"
 
-front_sensor['very_close'] = fuzz.trapmf(left_sensor.universe, [-math.inf, 0, 0.2, 0.4]) # "Lower", created using the fist value as being outside of range "to the left"
-front_sensor['close'] = fuzz.trimf(left_sensor.universe, [0.2, 0.4, 1])
-front_sensor['far'] = fuzz.trapmf(left_sensor.universe, [0.4, 1, 3.5, math.inf]) # "Upper", created using the last value outside of range "to the right"
+front_sensor['very_close'] = fuzz.trapmf(front_sensor.universe, [-math.inf, 0, 0.2, 0.4]) # "Lower", created using the fist value as being outside of range "to the left"
+front_sensor['close'] = fuzz.trimf(front_sensor.universe, [0.2, 0.4, 1])
+front_sensor['far'] = fuzz.trapmf(front_sensor.universe, [0.4, 1, 3.5, math.inf]) # "Upper", created using the last value outside of range "to the right"
 
-right_sensor['close'] = fuzz.trapmf(left_sensor.universe, [-math.inf, 0, 0.4, 1.4]) # "Lower", created using the fist value as being outside of range "to the left"
-right_sensor['far'] = fuzz.trapmf(left_sensor.universe, [0.4, 1.4, 3.5, math.inf]) # "Upper", created using the last value outside of range "to the right"
+right_sensor['close'] = fuzz.trapmf(right_sensor.universe, [-math.inf, 0, 0.4, 1.4]) # "Lower", created using the fist value as being outside of range "to the left"
+right_sensor['far'] = fuzz.trapmf(right_sensor.universe, [0.4, 1.4, 3.5, math.inf]) # "Upper", created using the last value outside of range "to the right"
 
 # Control output memberships, use tirangular even at the edges since output has limits
 # Linear
