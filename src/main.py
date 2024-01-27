@@ -146,15 +146,16 @@ def movement_choice():
     while(np.all(np_sensor_data == 0)):
         np_sensor_data = np.array(raw_sensor_data)
 
+    # Set all inf values to max value since average is calculated later
     np_sensor_data[np_sensor_data == inf] = 3.5
 
     # Provide sensor values to fuzzy system
     # Lidar values go counter clockwise and start infront of the robot
-    # Left value is min value of a 80 degree cone to the left
+    # Left value is mean value of a 80 degree cone to the left
     fuzzy_system.input['left_sensor'] = np.mean(np_sensor_data[11:90])
     # Front value is min value of a 20 degree cone forward
     fuzzy_system.input['front_sensor'] = np.min(np.concatenate((np_sensor_data[-10:], np_sensor_data[0:10]), axis=None))
-    # Right value is min value of a 80 degree cone to the right
+    # Right value is mean value of a 80 degree cone to the right
     fuzzy_system.input['right_sensor'] = np.mean(np_sensor_data[-90:-11])
 
     # Fuzzy computation
@@ -200,10 +201,10 @@ def get_coordinates():
 
     # The function executed each time a message is received
     def coordinate_callback(msg):
-        # Required so the array can be changed
+        # Required so the variable can be changed
         global position
 
-        # Store data in a global array
+        # Store data in a global variable
         position = msg.pose.pose.position
 
     # Subscribe to the topic for the turtlebot coordinates
