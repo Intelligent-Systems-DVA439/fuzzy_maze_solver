@@ -35,8 +35,9 @@ from std_srvs.srv import Empty
 #------------------------------------------------------------------------------
 # Global variables
 
-# Global value to receive sensor data (distance/range) from turtlebot
+# Global variable to store turtlebot coordinates/position
 position = None
+# Global value to receive sensor data (distance/range) from turtlebot
 raw_sensor_data = [0 for x in range(360)]
 #------------------------------------------------------------------------------
 # Fuzzy system
@@ -121,9 +122,15 @@ def get_sensor_readings():
     subscription = node.create_subscription(LaserScan, '/scan', listener_callback, 10)
     subscription  # prevent unused variable warning
 
-    # Spin until work is complete
-    rclpy.spin(node)
+    # Create new executor since only one can run on the global
+    executor = rclpy.executors.SingleThreadedExecutor()
+    executor.add_node(node)
 
+    # Spin until work is complete
+    rclpy.spin(node, executor)
+
+    # Shut down executor
+    executor.shutdown()
     # Destroy the node explicitly
     node.destroy_node()
     rclpy.shutdown()
@@ -210,6 +217,8 @@ def get_coordinates():
     # Spin until work is complete
     rclpy.spin(node, executor)
 
+    # Shut down executor
+    executor.shutdown()
     # Destroy the node explicitly
     node.destroy_node()
     rclpy.shutdown()
