@@ -286,12 +286,14 @@ def shutdown_function(node_array, executor_array):
     global shutdown_flag
     user_input = ""
 
+    # Wait for keyboard input q, quit or exit, then initiate shutdown
     while(1):
         user_input = input()
         if((user_input.lower() != "q") | (user_input.lower() != "quit") | (user_input.lower() != "exit")):
             break
         time.sleep(1/100)
 
+    # Exit all forever while loops so threads can join
     shutdown_flag = True
     
     time.sleep(1)
@@ -306,7 +308,10 @@ def shutdown_function(node_array, executor_array):
 
     time.sleep(1)
 
+    # Shutdown and free all rclpy resources
     rclpy.shutdown()
+
+    print("\n Shutdown succesful, have a nice day!\n")
 #==============================================================================
 
 #==============================================================================
@@ -334,7 +339,7 @@ def main():
     t2.start()
     t3.start()
     t4.start()
-    time.sleep(5)
+    time.sleep(1)
     t5.start()
 
     # Close threads once completed
