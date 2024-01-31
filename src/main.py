@@ -38,7 +38,7 @@ from std_srvs.srv import Empty
 # Global variable to store turtlebot coordinates/position
 position = None
 # Global value to receive sensor data (distance/range) from turtlebot
-raw_sensor_data = [0 for x in range(360)]
+raw_sensor_data = [-1 for x in range(360)]
 #------------------------------------------------------------------------------
 # Fuzzy system
 
@@ -174,7 +174,7 @@ def movement_choice():
     np_sensor_data = np.array(raw_sensor_data)
 
     # Stuck until sensor has been initialized and sensor values have been received
-    while(np.all(np_sensor_data == 0)):
+    while(np.all(np_sensor_data == -1)):
         np_sensor_data = np.array(raw_sensor_data)
 
     # Set all inf values to max value since average is calculated later
