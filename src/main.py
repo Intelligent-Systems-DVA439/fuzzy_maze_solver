@@ -135,7 +135,7 @@ fuzzy_system = ctrl.ControlSystemSimulation(fuzzy_ctrl)
 
 #==============================================================================
 # Get sensor readings
-def get_sensor_readings():
+def get_sensor_readings(node_array, executor_array):
     # Create subscriber/listener node
     node = rclpy.create_node('sensor_subscriber')
 
@@ -152,18 +152,17 @@ def get_sensor_readings():
     # https://www.youtube.com/watch?v=RFNNsDI2b6c&t=1s
     subscription = node.create_subscription(LaserScan, '/scan', listener_callback, 10)
     subscription  # prevent unused variable warning
+    # Add node to node array
+    node_array.append(node)
 
     # Create new executor since only one can run on the global
     executor = rclpy.executors.SingleThreadedExecutor()
     executor.add_node(node)
+    # Add executor to executor array
+    executor_array.append(executor)
 
     # Spin until work is complete
     rclpy.spin(node, executor)
-
-    # Shut down executor
-    executor.shutdown()
-    # Destroy the node explicitly
-    node.destroy_node()
 #==============================================================================
 
 #==============================================================================
@@ -201,7 +200,7 @@ def movement_choice():
 
 #==============================================================================
 # Controls turtlebot in gazebo
-def robot_control():
+def robot_control(node_array):
     global shutdown_flag
 
     # Create publisher node
@@ -209,6 +208,8 @@ def robot_control():
     node = rclpy.create_node('movement_publisher')
     # Publish on command topic
     publisher = node.create_publisher(Twist, '/cmd_vel', 10)
+    # Add node to node array
+    node_array.append(node)
 
     # set message to correct struct type
     msg = Twist()
@@ -220,14 +221,11 @@ def robot_control():
         msg.angular.z = angular_value
         # Send message
         publisher.publish(msg)
-
-    # Destroy node explicitly
-    node.destroy_node()
 #==============================================================================
 
 #==============================================================================
 # Get turtlebot coordinates
-def get_coordinates():
+def get_coordinates(node_array, executor_array):
     # Create subscriber node for coordinates of turtlebot
     node = rclpy.create_node('coordinates_subscriber')
 
@@ -242,23 +240,22 @@ def get_coordinates():
     # Subscribe to the topic for the turtlebot coordinates
     subscription = node.create_subscription(Odometry, 'odom', coordinate_callback, 10)
     subscription  # prevent unused variable warning
+    # Add node to node array
+    node_array.append(node)
 
     # Create new executor since only one can run on the global
     executor = rclpy.executors.SingleThreadedExecutor()
     executor.add_node(node)
+    # Add executor to executor array
+    executor_array.append(executor)
 
     # Spin until work is complete
     rclpy.spin(node, executor)
-
-    # Shut down executor
-    executor.shutdown()
-    # Destroy the node explicitly
-    node.destroy_node()
 #==============================================================================
 
 #==============================================================================
 # Reset simulation
-def reset_simulation():
+def reset_simulation(node_array):
     global shutdown_flag
 
     # Create service reset node
@@ -268,6 +265,8 @@ def reset_simulation():
     reset_world.wait_for_service()
     # Reset request
     request = Empty.Request()
+    # Add node to node array
+    node_array.append(node)
 
     # Wait until position has a value (aka until a turtlebot position has been received)
     while(position == None):
@@ -279,15 +278,11 @@ def reset_simulation():
         if((position.x > 10) | (position.x < -10) | (position.y > 10) | (position.y < -10)):
             print("Goal reached, reseting")
             reset_world.call_async(request)
-
-
-    # Shutdown the ROS node
-    node.destroy_node()
 #==============================================================================
 
 #==============================================================================
 # Shutdown function
-def shutdown_function():
+def shutdown_function(node_array, executor_array):
     global shutdown_flag
     user_input = ""
 
@@ -298,7 +293,19 @@ def shutdown_function():
         time.sleep(1/100)
 
     shutdown_flag = True
-    # Incase exeptions occur
+    
+    time.sleep(1)
+
+    # Destroy all nodes explicitly
+    for node in node_array:
+        node.destroy_node()
+
+    # Shut down all executors
+    for executor in executor_array:
+        executor.shutdown()
+
+    time.sleep(1)
+
     rclpy.shutdown()
 #==============================================================================
 
@@ -307,23 +314,27 @@ def shutdown_function():
 def main():
     # Initialize rclpy
     rclpy.init()
+    # For destroying all nodes and executors to cleanly shutdown
+    node_array = []
+    executor_array = []
 
     # Create thread for taking sensor values
-    t1 = threading.Thread(target=get_sensor_readings, name='t1')
+    t1 = threading.Thread(target=get_sensor_readings, name='t1', args = (node_array, executor_array))
     # Create thread for controling robot
-    t2 = threading.Thread(target=robot_control, name='t2')
+    t2 = threading.Thread(target=robot_control, name='t2', args = (node_array,))
     # Thread for reseting once goal is reached
-    t3 = threading.Thread(target=reset_simulation, name='t3')
+    t3 = threading.Thread(target=reset_simulation, name='t3', args = (node_array,))
     # Thread for getting turtlebot coordinates
-    t4 = threading.Thread(target=get_coordinates, name='t4')
+    t4 = threading.Thread(target=get_coordinates, name='t4', args = (node_array, executor_array))
     # Thread for listening to keyboard input, once q, quit or exit is entered, initiates shutdown
-    t5 = threading.Thread(target=shutdown_function, name='t5')
+    t5 = threading.Thread(target=shutdown_function, name='t5', args = (node_array, executor_array))
 
     # Start threads
     t1.start()
     t2.start()
     t3.start()
     t4.start()
+    time.sleep(5)
     t5.start()
 
     # Close threads once completed
