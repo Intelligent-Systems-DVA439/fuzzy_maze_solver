@@ -15,6 +15,7 @@
 # Libraries
 import math
 import threading
+import time
 import numpy as np
 from numpy import inf
 import skfuzzy as fuzz
@@ -39,6 +40,8 @@ from std_srvs.srv import Empty
 position = None
 # Global value to receive sensor data (distance/range) from turtlebot
 raw_sensor_data = [-1 for x in range(360)]
+# Shutdown flag
+shutdown_flag = False
 #------------------------------------------------------------------------------
 # Fuzzy system
 
@@ -161,7 +164,6 @@ def get_sensor_readings():
     executor.shutdown()
     # Destroy the node explicitly
     node.destroy_node()
-    rclpy.shutdown()
 #==============================================================================
 
 #==============================================================================
@@ -200,6 +202,8 @@ def movement_choice():
 #==============================================================================
 # Controls turtlebot in gazebo
 def robot_control():
+    global shutdown_flag
+
     # Create publisher node
     # https://www.youtube.com/watch?v=yEwi1__NJrE
     node = rclpy.create_node('movement_publisher')
@@ -209,7 +213,7 @@ def robot_control():
     # set message to correct struct type
     msg = Twist()
 
-    while(1):
+    while(shutdown_flag != True):
         # Decide which linear and angular movement should be taken
         linear_value, angular_value = movement_choice()
         msg.linear.x = linear_value
@@ -219,7 +223,6 @@ def robot_control():
 
     # Destroy node explicitly
     node.destroy_node()
-    rclpy.shutdown()
 #==============================================================================
 
 #==============================================================================
@@ -251,12 +254,13 @@ def get_coordinates():
     executor.shutdown()
     # Destroy the node explicitly
     node.destroy_node()
-    rclpy.shutdown()
 #==============================================================================
 
 #==============================================================================
 # Reset simulation
 def reset_simulation():
+    global shutdown_flag
+
     # Create service reset node
     node = rclpy.create_node('service_reset')
     reset_world = node.create_client(Empty, '/reset_world')
@@ -270,7 +274,7 @@ def reset_simulation():
         pass
 
     # Continously check if turtlebot has made it out of the maze
-    while(1):
+    while(shutdown_flag != True):
         # Reset simulation once goal is reached
         if((position.x > 10) | (position.x < -10) | (position.y > 10) | (position.y < -10)):
             print("Goal reached, reseting")
@@ -279,6 +283,22 @@ def reset_simulation():
 
     # Shutdown the ROS node
     node.destroy_node()
+#==============================================================================
+
+#==============================================================================
+# Shutdown function
+def shutdown_function():
+    global shutdown_flag
+    user_input = ""
+
+    while(1):
+        user_input = input()
+        if((user_input.lower() != "q") | (user_input.lower() != "quit") | (user_input.lower() != "exit")):
+            break
+        time.sleep(1/100)
+
+    shutdown_flag = True
+    # Incase exeptions occur
     rclpy.shutdown()
 #==============================================================================
 
@@ -296,18 +316,22 @@ def main():
     t3 = threading.Thread(target=reset_simulation, name='t3')
     # Thread for getting turtlebot coordinates
     t4 = threading.Thread(target=get_coordinates, name='t4')
+    # Thread for listening to keyboard input, once q, quit or exit is entered, initiates shutdown
+    t5 = threading.Thread(target=shutdown_function, name='t5')
 
     # Start threads
     t1.start()
     t2.start()
     t3.start()
     t4.start()
+    t5.start()
 
     # Close threads once completed
     t1.join()
     t2.join()
     t3.join()
     t4.join()
+    t5.join()
 #==============================================================================
 
 #==============================================================================
