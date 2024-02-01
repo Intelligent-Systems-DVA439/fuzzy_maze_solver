@@ -59,17 +59,17 @@ angular_movement = ctrl.Consequent(np.arange(-1.82, 1.82, 0.01), 'angular')
 
 # Define membership functions, using triangular and trapezoidal memberships
 # Sensor readings memberships
-left_sensor['close'] = fuzz.trapmf(left_sensor.universe, [-math.inf, 0, 0.2, 0.4]) # "Lower", created using the fist value as being outside of range "to the left"
-left_sensor['medium'] = fuzz.trimf(left_sensor.universe, [0.2, 0.4, 1.4])
-left_sensor['far'] = fuzz.trapmf(left_sensor.universe, [0.4, 1.4, 3.5, math.inf]) # "Upper", created using the last value outside of range "to the right"
+left_sensor['close'] = fuzz.trapmf(left_sensor.universe, [-math.inf, 0, 0.4, 0.8]) # "Lower", created using the fist value as being outside of range "to the left"
+left_sensor['medium'] = fuzz.trimf(left_sensor.universe, [0.4, 0.8, 2.8])
+left_sensor['far'] = fuzz.trapmf(left_sensor.universe, [0.8, 2.8, 3.5, math.inf]) # "Upper", created using the last value outside of range "to the right"
 
 front_sensor['close'] = fuzz.trapmf(front_sensor.universe, [-math.inf, 0, 0.15, 0.3]) # "Lower", created using the fist value as being outside of range "to the left"
 front_sensor['medium'] = fuzz.trimf(front_sensor.universe, [0.15, 0.3, 1])
 front_sensor['far'] = fuzz.trapmf(front_sensor.universe, [0.3, 1, 3.5, math.inf]) # "Upper", created using the last value outside of range "to the right"
 
-right_sensor['close'] = fuzz.trapmf(right_sensor.universe, [-math.inf, 0, 0.2, 0.4]) # "Lower", created using the fist value as being outside of range "to the left"
-right_sensor['medium'] = fuzz.trimf(right_sensor.universe, [0.2, 0.4, 1.4])
-right_sensor['far'] = fuzz.trapmf(right_sensor.universe, [0.4, 1.4, 3.5, math.inf]) # "Upper", created using the last value outside of range "to the right"
+right_sensor['close'] = fuzz.trapmf(right_sensor.universe, [-math.inf, 0, 0.4, 0.8]) # "Lower", created using the fist value as being outside of range "to the left"
+right_sensor['medium'] = fuzz.trimf(right_sensor.universe, [0.4, 0.8, 2.8])
+right_sensor['far'] = fuzz.trapmf(right_sensor.universe, [0.8, 2.8, 3.5, math.inf]) # "Upper", created using the last value outside of range "to the right"
 
 # Control output memberships, use tirangular even at the edges since output has limits
 # Linear
@@ -93,8 +93,8 @@ rule2 = ctrl.Rule(front_sensor['medium'], linear_movement['linear_stop'])
 rule3 = ctrl.Rule(front_sensor['far'], linear_movement['linear_forward'])
 
 # Angular
-rule4 = ctrl.Rule(left_sensor['far'] & front_sensor['far'] & right_sensor['far'], angular_movement['angular_stop'])
-rule5 = ctrl.Rule(left_sensor['far'] & front_sensor['far'] & right_sensor['medium'], angular_movement['angular_left_slow'])
+rule4 = ctrl.Rule(left_sensor['far'] & front_sensor['far'] & right_sensor['far'], angular_movement['angular_left_slow']) # Favor Left (Required for the turtlebot to take left in T crossings)
+rule5 = ctrl.Rule(left_sensor['far'] & front_sensor['far'] & right_sensor['medium'], angular_movement['angular_left_slow']) #?
 rule6 = ctrl.Rule(left_sensor['far'] & front_sensor['far'] & right_sensor['close'], angular_movement['angular_left_fast'])
 rule7 = ctrl.Rule(left_sensor['far'] & front_sensor['medium'] & right_sensor['far'], angular_movement['angular_left_slow']) # Favor left
 rule8 = ctrl.Rule(left_sensor['far'] & front_sensor['medium'] & right_sensor['medium'], angular_movement['angular_left_slow'])
@@ -102,13 +102,13 @@ rule9 = ctrl.Rule(left_sensor['far'] & front_sensor['medium'] & right_sensor['cl
 rule10 = ctrl.Rule(left_sensor['far'] & front_sensor['close'] & right_sensor['far'], angular_movement['angular_left_fast']) # Favor left
 rule11 = ctrl.Rule(left_sensor['far'] & front_sensor['close'] & right_sensor['medium'], angular_movement['angular_left_fast'])
 rule12 = ctrl.Rule(left_sensor['far'] & front_sensor['close'] & right_sensor['close'], angular_movement['angular_left_fast'])
-rule13 = ctrl.Rule(left_sensor['medium'] & front_sensor['far'] & right_sensor['far'], angular_movement['angular_right_slow'])
+rule13 = ctrl.Rule(left_sensor['medium'] & front_sensor['far'] & right_sensor['far'], angular_movement['angular_right_slow']) #?
 rule14 = ctrl.Rule(left_sensor['medium'] & front_sensor['far'] & right_sensor['medium'], angular_movement['angular_stop'])
 rule15 = ctrl.Rule(left_sensor['medium'] & front_sensor['far'] & right_sensor['close'], angular_movement['angular_left_fast'])
-rule16 = ctrl.Rule(left_sensor['medium'] & front_sensor['medium'] & right_sensor['far'], angular_movement['angular_right_slow'])
+rule16 = ctrl.Rule(left_sensor['medium'] & front_sensor['medium'] & right_sensor['far'], angular_movement['angular_right_slow']) #?
 rule17 = ctrl.Rule(left_sensor['medium'] & front_sensor['medium'] & right_sensor['medium'], angular_movement['angular_left_slow']) # Favor left
 rule18 = ctrl.Rule(left_sensor['medium'] & front_sensor['medium'] & right_sensor['close'], angular_movement['angular_left_fast'])
-rule19 = ctrl.Rule(left_sensor['medium'] & front_sensor['close'] & right_sensor['far'], angular_movement['angular_right_fast'])
+rule19 = ctrl.Rule(left_sensor['medium'] & front_sensor['close'] & right_sensor['far'], angular_movement['angular_right_fast']) #?
 rule20 = ctrl.Rule(left_sensor['medium'] & front_sensor['close'] & right_sensor['medium'], angular_movement['angular_left_fast']) # Favor left
 rule21 = ctrl.Rule(left_sensor['medium'] & front_sensor['close'] & right_sensor['close'], angular_movement['angular_left_fast'])
 rule22 = ctrl.Rule(left_sensor['close'] & front_sensor['far'] & right_sensor['far'], angular_movement['angular_right_fast'])
@@ -168,6 +168,8 @@ def get_sensor_readings(node_array, executor_array):
 #==============================================================================
 # Maze solver, decide which movement should be taken
 def movement_choice():
+    global raw_sensor_data
+
     # Get sensor values (percept)
     np_sensor_data = np.array(raw_sensor_data)
 
@@ -275,7 +277,7 @@ def reset_simulation(node_array):
     # Continously check if turtlebot has made it out of the maze
     while(shutdown_flag != True):
         # Reset simulation once goal is reached
-        if((position.x > 10) | (position.x < -10) | (position.y > 10) | (position.y < -10)):
+        if((position.x > 32) | (position.x < -32) | (position.y > 32) | (position.y < -32)):
             print("Goal reached, reseting")
             reset_world.call_async(request)
 #==============================================================================
