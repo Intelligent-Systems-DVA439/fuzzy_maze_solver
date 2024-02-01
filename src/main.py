@@ -277,7 +277,7 @@ def reset_simulation(node_array):
     # Continously check if turtlebot has made it out of the maze
     while(shutdown_flag != True):
         # Reset simulation once goal is reached
-        if((position.x > 32) | (position.x < -32) | (position.y > 32) | (position.y < -32)):
+        if((position.x > 33) | (position.x < -33) | (position.y > 33) | (position.y < -33)):
             print("Goal reached, reseting")
             reset_world.call_async(request)
 #==============================================================================
