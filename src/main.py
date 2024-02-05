@@ -16,6 +16,7 @@
 import math
 import threading
 import time
+
 import numpy as np
 from numpy import inf
 import skfuzzy as fuzz
@@ -43,95 +44,100 @@ raw_sensor_data = [-1 for x in range(360)]
 # Shutdown flag
 shutdown_flag = False
 #------------------------------------------------------------------------------
-# Fuzzy system
 
 
-# Fuzzy variables
-# Define fuzzy input variables (sensors and their range of possible values)
-left_sensor = ctrl.Antecedent(np.arange(0, 3.51, 0.01), 'left_sensor')
-front_sensor = ctrl.Antecedent(np.arange(0, 3.51, 0.01), 'front_sensor')
-right_sensor = ctrl.Antecedent(np.arange(0, 3.51, 0.01), 'right_sensor')
+#==============================================================================
+# Create fuzzy system
+def create_fuzzy_system():
+    # Fuzzy variables
+    # Define fuzzy input variables (sensors)
+    # Normalized
+    left_sensor = ctrl.Antecedent(np.arange(0, 1, 0.01), 'left_sensor')
+    front_sensor = ctrl.Antecedent(np.arange(0, 1, 0.01), 'front_sensor')
+    right_sensor = ctrl.Antecedent(np.arange(0, 1, 0.01), 'right_sensor')
 
-# Define fuzzy output variable (control signal and its range of possible values)
-linear_movement = ctrl.Consequent(np.arange(-0.26, 0.26, 0.01), 'linear')
-angular_movement = ctrl.Consequent(np.arange(-1.82, 1.82, 0.01), 'angular')
-
-
-# Define membership functions, using triangular and trapezoidal memberships
-# Sensor readings memberships
-left_sensor['close'] = fuzz.trapmf(left_sensor.universe, [-math.inf, 0, 0.4, 0.8]) # "Lower", created using the fist value as being outside of range "to the left"
-left_sensor['medium'] = fuzz.trimf(left_sensor.universe, [0.4, 0.8, 2.8])
-left_sensor['far'] = fuzz.trapmf(left_sensor.universe, [0.8, 2.8, 3.5, math.inf]) # "Upper", created using the last value outside of range "to the right"
-
-front_sensor['close'] = fuzz.trapmf(front_sensor.universe, [-math.inf, 0, 0.15, 0.3]) # "Lower", created using the fist value as being outside of range "to the left"
-front_sensor['medium'] = fuzz.trimf(front_sensor.universe, [0.15, 0.3, 1])
-front_sensor['far'] = fuzz.trapmf(front_sensor.universe, [0.3, 1, 3.5, math.inf]) # "Upper", created using the last value outside of range "to the right"
-
-right_sensor['close'] = fuzz.trapmf(right_sensor.universe, [-math.inf, 0, 0.4, 0.8]) # "Lower", created using the fist value as being outside of range "to the left"
-right_sensor['medium'] = fuzz.trimf(right_sensor.universe, [0.4, 0.8, 2.8])
-right_sensor['far'] = fuzz.trapmf(right_sensor.universe, [0.8, 2.8, 3.5, math.inf]) # "Upper", created using the last value outside of range "to the right"
-
-# Control output memberships, use tirangular even at the edges since output has limits
-# Linear
-linear_movement['linear_reverse'] = fuzz.trimf(linear_movement.universe, [-0.26, -0.15, -0.04])
-linear_movement['linear_stop'] = fuzz.trimf(linear_movement.universe, [-0.04, 0, 0.04])
-linear_movement['linear_forward'] = fuzz.trimf(linear_movement.universe, [0.04, 0.15, 0.26])
-
-# Angular
-# z-aix is positive counter clockwise, and negative clockwise (viewed from above)
-angular_movement['angular_right_fast'] = fuzz.trimf(angular_movement.universe, [-1.82, -1.32, -0.82])
-angular_movement['angular_right_slow'] = fuzz.trimf(angular_movement.universe, [-1, -0.5, 0])
-angular_movement['angular_stop'] = fuzz.trimf(angular_movement.universe, [-0.1, 0, 0.1]) 
-angular_movement['angular_left_slow'] = fuzz.trimf(angular_movement.universe, [0, 0.5, 1])
-angular_movement['angular_left_fast'] = fuzz.trimf(angular_movement.universe, [0.82, 1.32, 1.82])
+    # Define fuzzy output variable (control signal)
+    # Normalized
+    linear_movement = ctrl.Consequent(np.arange(-1, 1, 0.01), 'linear')
+    angular_movement = ctrl.Consequent(np.arange(-1, 1, 0.01), 'angular')
 
 
-# Define fuzzy logic rules
-# Linear
-rule1 = ctrl.Rule(front_sensor['close'], linear_movement['linear_reverse'])
-rule2 = ctrl.Rule(front_sensor['medium'], linear_movement['linear_stop'])
-rule3 = ctrl.Rule(front_sensor['far'], linear_movement['linear_forward'])
+    # Define membership functions, using triangular and trapezoidal memberships
+    # Normalized sensor readings memberships
+    left_sensor['close'] = fuzz.trapmf(left_sensor.universe, [-math.inf, 0, 0.114, 0.228]) # "Lower", created using the fist value as being outside of range "to the left"
+    left_sensor['medium'] = fuzz.trimf(left_sensor.universe, [0.114, 0.228, 0.798])
+    left_sensor['far'] = fuzz.trapmf(left_sensor.universe, [0.228, 0.798, 1, math.inf]) # "Upper", created using the last value outside of range "to the right"
 
-# Angular
-rule4 = ctrl.Rule(left_sensor['far'] & front_sensor['far'] & right_sensor['far'], angular_movement['angular_left_slow']) # Favor Left (Required for the turtlebot to take left in T crossings)
-rule5 = ctrl.Rule(left_sensor['far'] & front_sensor['far'] & right_sensor['medium'], angular_movement['angular_left_slow']) #?
-rule6 = ctrl.Rule(left_sensor['far'] & front_sensor['far'] & right_sensor['close'], angular_movement['angular_left_fast'])
-rule7 = ctrl.Rule(left_sensor['far'] & front_sensor['medium'] & right_sensor['far'], angular_movement['angular_left_slow']) # Favor left
-rule8 = ctrl.Rule(left_sensor['far'] & front_sensor['medium'] & right_sensor['medium'], angular_movement['angular_left_slow'])
-rule9 = ctrl.Rule(left_sensor['far'] & front_sensor['medium'] & right_sensor['close'], angular_movement['angular_left_fast'])
-rule10 = ctrl.Rule(left_sensor['far'] & front_sensor['close'] & right_sensor['far'], angular_movement['angular_left_fast']) # Favor left
-rule11 = ctrl.Rule(left_sensor['far'] & front_sensor['close'] & right_sensor['medium'], angular_movement['angular_left_fast'])
-rule12 = ctrl.Rule(left_sensor['far'] & front_sensor['close'] & right_sensor['close'], angular_movement['angular_left_fast'])
-rule13 = ctrl.Rule(left_sensor['medium'] & front_sensor['far'] & right_sensor['far'], angular_movement['angular_right_slow']) #?
-rule14 = ctrl.Rule(left_sensor['medium'] & front_sensor['far'] & right_sensor['medium'], angular_movement['angular_stop'])
-rule15 = ctrl.Rule(left_sensor['medium'] & front_sensor['far'] & right_sensor['close'], angular_movement['angular_left_fast'])
-rule16 = ctrl.Rule(left_sensor['medium'] & front_sensor['medium'] & right_sensor['far'], angular_movement['angular_right_slow']) #?
-rule17 = ctrl.Rule(left_sensor['medium'] & front_sensor['medium'] & right_sensor['medium'], angular_movement['angular_left_slow']) # Favor left
-rule18 = ctrl.Rule(left_sensor['medium'] & front_sensor['medium'] & right_sensor['close'], angular_movement['angular_left_fast'])
-rule19 = ctrl.Rule(left_sensor['medium'] & front_sensor['close'] & right_sensor['far'], angular_movement['angular_right_fast']) #?
-rule20 = ctrl.Rule(left_sensor['medium'] & front_sensor['close'] & right_sensor['medium'], angular_movement['angular_left_fast']) # Favor left
-rule21 = ctrl.Rule(left_sensor['medium'] & front_sensor['close'] & right_sensor['close'], angular_movement['angular_left_fast'])
-rule22 = ctrl.Rule(left_sensor['close'] & front_sensor['far'] & right_sensor['far'], angular_movement['angular_right_fast'])
-rule23 = ctrl.Rule(left_sensor['close'] & front_sensor['far'] & right_sensor['medium'], angular_movement['angular_right_fast'])
-rule24 = ctrl.Rule(left_sensor['close'] & front_sensor['far'] & right_sensor['close'], angular_movement['angular_stop'])
-rule25 = ctrl.Rule(left_sensor['close'] & front_sensor['medium'] & right_sensor['far'], angular_movement['angular_right_fast'])
-rule26 = ctrl.Rule(left_sensor['close'] & front_sensor['medium'] & right_sensor['medium'], angular_movement['angular_right_fast'])
-rule27 = ctrl.Rule(left_sensor['close'] & front_sensor['medium'] & right_sensor['close'], angular_movement['angular_stop'])
-rule28 = ctrl.Rule(left_sensor['close'] & front_sensor['close'] & right_sensor['far'], angular_movement['angular_right_fast'])
-rule29 = ctrl.Rule(left_sensor['close'] & front_sensor['close'] & right_sensor['medium'], angular_movement['angular_right_fast'])
-rule30 = ctrl.Rule(left_sensor['close'] & front_sensor['close'] & right_sensor['close'], angular_movement['angular_left_fast']) # Favor left
+    front_sensor['close'] = fuzz.trapmf(front_sensor.universe, [-math.inf, 0, 0.043, 0.085]) # "Lower", created using the fist value as being outside of range "to the left"
+    front_sensor['medium'] = fuzz.trimf(front_sensor.universe, [0.043, 0.085, 0.285])
+    front_sensor['far'] = fuzz.trapmf(front_sensor.universe, [0.085, 0.285, 1, math.inf]) # "Upper", created using the last value outside of range "to the right"
+
+    right_sensor['close'] = fuzz.trapmf(right_sensor.universe, [-math.inf, 0, 0.114, 0.228]) # "Lower", created using the fist value as being outside of range "to the left"
+    right_sensor['medium'] = fuzz.trimf(right_sensor.universe, [0.114, 0.228, 0.798])
+    right_sensor['far'] = fuzz.trapmf(right_sensor.universe, [0.228, 0.798, 1, math.inf]) # "Upper", created using the last value outside of range "to the right"
+
+    # Normalized control output memberships, use tirangular even at the edges since output has limits
+    # Linear
+    linear_movement['linear_reverse'] = fuzz.trimf(linear_movement.universe, [-1, -0.577, -0.154])
+    linear_movement['linear_stop'] = fuzz.trimf(linear_movement.universe, [-0.154, 0, 0.154])
+    linear_movement['linear_forward'] = fuzz.trimf(linear_movement.universe, [0.154, 0.577, 1])
+
+    # Angular
+    # z-aix is positive counter clockwise, and negative clockwise (viewed from above)
+    angular_movement['angular_right_fast'] = fuzz.trimf(angular_movement.universe, [-1, -0.725, -0.451])
+    angular_movement['angular_right_slow'] = fuzz.trimf(angular_movement.universe, [-0.550, -0.275, 0])
+    angular_movement['angular_stop'] = fuzz.trimf(angular_movement.universe, [-0.055, 0, 0.055]) 
+    angular_movement['angular_left_slow'] = fuzz.trimf(angular_movement.universe, [0, 0.275, 0.550])
+    angular_movement['angular_left_fast'] = fuzz.trimf(angular_movement.universe, [0.451, 0.725, 1])
 
 
-# Create fuzzy control system
-fuzzy_ctrl = ctrl.ControlSystem([
-    rule1, rule2, rule3, rule4, rule5, rule6, rule7, rule8, rule9, rule10,
-    rule11, rule12, rule13, rule14, rule15, rule16, rule17, rule18, rule19,
-    rule20, rule21, rule22, rule23, rule24, rule25, rule26, rule27, rule28,
-    rule29, rule30
-    ])
-fuzzy_system = ctrl.ControlSystemSimulation(fuzzy_ctrl)
-#------------------------------------------------------------------------------
+    # Define fuzzy logic rules
+    # Linear
+    rule1 = ctrl.Rule(front_sensor['close'], linear_movement['linear_reverse'])
+    rule2 = ctrl.Rule(front_sensor['medium'], linear_movement['linear_stop'])
+    rule3 = ctrl.Rule(front_sensor['far'], linear_movement['linear_forward'])
 
+    # Angular
+    rule4 = ctrl.Rule(left_sensor['far'] & front_sensor['far'] & right_sensor['far'], angular_movement['angular_left_slow']) # Favor Left (Required for the turtlebot to take left in T crossings)
+    rule5 = ctrl.Rule(left_sensor['far'] & front_sensor['far'] & right_sensor['medium'], angular_movement['angular_left_slow']) #?
+    rule6 = ctrl.Rule(left_sensor['far'] & front_sensor['far'] & right_sensor['close'], angular_movement['angular_left_fast'])
+    rule7 = ctrl.Rule(left_sensor['far'] & front_sensor['medium'] & right_sensor['far'], angular_movement['angular_left_slow']) # Favor left
+    rule8 = ctrl.Rule(left_sensor['far'] & front_sensor['medium'] & right_sensor['medium'], angular_movement['angular_left_slow'])
+    rule9 = ctrl.Rule(left_sensor['far'] & front_sensor['medium'] & right_sensor['close'], angular_movement['angular_left_fast'])
+    rule10 = ctrl.Rule(left_sensor['far'] & front_sensor['close'] & right_sensor['far'], angular_movement['angular_left_fast']) # Favor left
+    rule11 = ctrl.Rule(left_sensor['far'] & front_sensor['close'] & right_sensor['medium'], angular_movement['angular_left_fast'])
+    rule12 = ctrl.Rule(left_sensor['far'] & front_sensor['close'] & right_sensor['close'], angular_movement['angular_left_fast'])
+    rule13 = ctrl.Rule(left_sensor['medium'] & front_sensor['far'] & right_sensor['far'], angular_movement['angular_right_slow']) #?
+    rule14 = ctrl.Rule(left_sensor['medium'] & front_sensor['far'] & right_sensor['medium'], angular_movement['angular_stop'])
+    rule15 = ctrl.Rule(left_sensor['medium'] & front_sensor['far'] & right_sensor['close'], angular_movement['angular_left_fast'])
+    rule16 = ctrl.Rule(left_sensor['medium'] & front_sensor['medium'] & right_sensor['far'], angular_movement['angular_right_slow']) #?
+    rule17 = ctrl.Rule(left_sensor['medium'] & front_sensor['medium'] & right_sensor['medium'], angular_movement['angular_left_slow']) # Favor left
+    rule18 = ctrl.Rule(left_sensor['medium'] & front_sensor['medium'] & right_sensor['close'], angular_movement['angular_left_fast'])
+    rule19 = ctrl.Rule(left_sensor['medium'] & front_sensor['close'] & right_sensor['far'], angular_movement['angular_right_fast']) #?
+    rule20 = ctrl.Rule(left_sensor['medium'] & front_sensor['close'] & right_sensor['medium'], angular_movement['angular_left_fast']) # Favor left
+    rule21 = ctrl.Rule(left_sensor['medium'] & front_sensor['close'] & right_sensor['close'], angular_movement['angular_left_fast'])
+    rule22 = ctrl.Rule(left_sensor['close'] & front_sensor['far'] & right_sensor['far'], angular_movement['angular_right_fast'])
+    rule23 = ctrl.Rule(left_sensor['close'] & front_sensor['far'] & right_sensor['medium'], angular_movement['angular_right_fast'])
+    rule24 = ctrl.Rule(left_sensor['close'] & front_sensor['far'] & right_sensor['close'], angular_movement['angular_stop'])
+    rule25 = ctrl.Rule(left_sensor['close'] & front_sensor['medium'] & right_sensor['far'], angular_movement['angular_right_fast'])
+    rule26 = ctrl.Rule(left_sensor['close'] & front_sensor['medium'] & right_sensor['medium'], angular_movement['angular_right_fast'])
+    rule27 = ctrl.Rule(left_sensor['close'] & front_sensor['medium'] & right_sensor['close'], angular_movement['angular_stop'])
+    rule28 = ctrl.Rule(left_sensor['close'] & front_sensor['close'] & right_sensor['far'], angular_movement['angular_right_fast'])
+    rule29 = ctrl.Rule(left_sensor['close'] & front_sensor['close'] & right_sensor['medium'], angular_movement['angular_right_fast'])
+    rule30 = ctrl.Rule(left_sensor['close'] & front_sensor['close'] & right_sensor['close'], angular_movement['angular_left_fast']) # Favor left
+
+
+    # Create fuzzy control system
+    fuzzy_ctrl = ctrl.ControlSystem([
+        rule1, rule2, rule3, rule4, rule5, rule6, rule7, rule8, rule9, rule10,
+        rule11, rule12, rule13, rule14, rule15, rule16, rule17, rule18, rule19,
+        rule20, rule21, rule22, rule23, rule24, rule25, rule26, rule27, rule28,
+        rule29, rule30
+        ])
+    fuzzy_system = ctrl.ControlSystemSimulation(fuzzy_ctrl)
+
+    return fuzzy_system
+#==============================================================================
 
 #==============================================================================
 # Get sensor readings
@@ -152,13 +158,13 @@ def get_sensor_readings(node_array, executor_array):
     # https://www.youtube.com/watch?v=RFNNsDI2b6c&t=1s
     subscription = node.create_subscription(LaserScan, '/scan', listener_callback, 10)
     subscription  # prevent unused variable warning
-    # Add node to node array
+    # Add node to node array for shutdown
     node_array.append(node)
 
     # Create new executor since only one can run on the global
     executor = rclpy.executors.SingleThreadedExecutor()
     executor.add_node(node)
-    # Add executor to executor array
+    # Add executor to executor array for shutdown
     executor_array.append(executor)
 
     # Spin until work is complete
@@ -167,7 +173,7 @@ def get_sensor_readings(node_array, executor_array):
 
 #==============================================================================
 # Maze solver, decide which movement should be taken
-def movement_choice():
+def movement_choice(fuzzy_system, min_sensor_value, max_sensor_value, min_linear, max_linear, min_angular, max_angular):
     global raw_sensor_data
 
     # Get sensor values (percept)
@@ -180,29 +186,30 @@ def movement_choice():
     # Set all inf values to max value since average is calculated later
     np_sensor_data[np_sensor_data == inf] = 3.5
 
-    # Provide sensor values to fuzzy system
+    # Provide normalized sensor values to fuzzy system
     # Lidar values go counter clockwise and start infront of the robot
     # Left value is mean value of a 80 degree cone to the left
-    fuzzy_system.input['left_sensor'] = np.mean(np_sensor_data[10:80])
+    fuzzy_system.input['left_sensor'] = (np.mean(np_sensor_data[10:80]) - min_sensor_value)/(max_sensor_value - min_sensor_value)
     # Front value is min value of a 20 degree cone forward
-    fuzzy_system.input['front_sensor'] = np.min(np.concatenate((np_sensor_data[-20:], np_sensor_data[0:20]), axis=None))
+    fuzzy_system.input['front_sensor'] = (np.min(np.concatenate((np_sensor_data[-20:], np_sensor_data[0:20]), axis=None)) - min_sensor_value)/(max_sensor_value - min_sensor_value)
     # Right value is mean value of a 80 degree cone to the right
-    fuzzy_system.input['right_sensor'] = np.mean(np_sensor_data[-80:-10])
+    fuzzy_system.input['right_sensor'] = (np.mean(np_sensor_data[-80:-10]) - min_sensor_value)/(max_sensor_value - min_sensor_value)
     #print("\nL: ",np.mean(np_sensor_data[10:80]),", F: ",np.min(np.concatenate((np_sensor_data[-20:], np_sensor_data[0:20]), axis=None)),", R: ",np.mean(np_sensor_data[-80:-10]),"\n")
 
     # Fuzzy computation
     fuzzy_system.compute()
 
     # Fuzzy decision on which movement should be taken
-    linear_value = fuzzy_system.output['linear']
-    angular_value = fuzzy_system.output['angular']
+    # Also "unnormalize" the data
+    linear_value = (fuzzy_system.output['linear'] - (-1)) * (max_linear - min_linear) / (1 - (-1)) + min_linear
+    angular_value = (fuzzy_system.output['angular'] - (-1)) * (max_angular - min_angular) / (1 - (-1)) + min_angular
 
     return linear_value, angular_value
 #==============================================================================
 
 #==============================================================================
 # Controls turtlebot in gazebo
-def robot_control(node_array):
+def robot_control(node_array, fuzzy_system, min_sensor_value, max_sensor_value, min_linear, max_linear, min_angular, max_angular):
     global shutdown_flag
 
     # Create publisher node
@@ -210,7 +217,7 @@ def robot_control(node_array):
     node = rclpy.create_node('movement_publisher')
     # Publish on command topic
     publisher = node.create_publisher(Twist, '/cmd_vel', 10)
-    # Add node to node array
+    # Add node to node array for shutdown
     node_array.append(node)
 
     # set message to correct struct type
@@ -218,7 +225,7 @@ def robot_control(node_array):
 
     while(shutdown_flag != True):
         # Decide which linear and angular movement should be taken
-        linear_value, angular_value = movement_choice()
+        linear_value, angular_value = movement_choice(fuzzy_system, min_sensor_value, max_sensor_value, min_linear, max_linear, min_angular, max_angular)
         msg.linear.x = linear_value
         msg.angular.z = angular_value
         # Send message
@@ -242,13 +249,13 @@ def get_coordinates(node_array, executor_array):
     # Subscribe to the topic for the turtlebot coordinates
     subscription = node.create_subscription(Odometry, 'odom', coordinate_callback, 10)
     subscription  # prevent unused variable warning
-    # Add node to node array
+    # Add node to node array for shutdown
     node_array.append(node)
 
     # Create new executor since only one can run on the global
     executor = rclpy.executors.SingleThreadedExecutor()
     executor.add_node(node)
-    # Add executor to executor array
+    # Add executor to executor array for shutdown
     executor_array.append(executor)
 
     # Spin until work is complete
@@ -267,7 +274,7 @@ def reset_simulation(node_array):
     reset_world.wait_for_service()
     # Reset request
     request = Empty.Request()
-    # Add node to node array
+    # Add node to node array for shutdown
     node_array.append(node)
 
     # Wait until position has a value (aka until a turtlebot position has been received)
@@ -297,7 +304,7 @@ def shutdown_function(node_array, executor_array):
 
     # Exit all forever while loops so threads can join
     shutdown_flag = True
-    
+
     time.sleep(1)
 
     # Destroy all nodes explicitly
@@ -321,14 +328,24 @@ def shutdown_function(node_array, executor_array):
 def main():
     # Initialize rclpy
     rclpy.init()
-    # For destroying all nodes and executors to cleanly shutdown
+    # For normalization
+    min_sensor_value = 0
+    max_sensor_value = 3.51
+    min_linear = -0.26
+    max_linear = 0.26
+    min_angular = -1.82
+    max_angular = 1.82
+    # For destroying all nodes and executors, for a clean shutdown
     node_array = []
     executor_array = []
+
+    # Create fuzzy control syste
+    fuzzy_system = create_fuzzy_system()
 
     # Create thread for taking sensor values
     t1 = threading.Thread(target=get_sensor_readings, name='t1', args = (node_array, executor_array))
     # Create thread for controling robot
-    t2 = threading.Thread(target=robot_control, name='t2', args = (node_array,))
+    t2 = threading.Thread(target=robot_control, name='t2', args = (node_array, fuzzy_system, min_sensor_value, max_sensor_value, min_linear, max_linear, min_angular, max_angular))
     # Thread for reseting once goal is reached
     t3 = threading.Thread(target=reset_simulation, name='t3', args = (node_array,))
     # Thread for getting turtlebot coordinates
