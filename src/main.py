@@ -51,7 +51,7 @@ shutdown_flag = False
 
 #==============================================================================
 # Create fuzzy system
-def create_fuzzy_system(visualize_memberships = 0):
+def create_fuzzy_system(defuzzy_method = 'centroid', visualize_memberships = 0):
     # Fuzzy variables
     # Define fuzzy input variables (sensors)
     # Normalized
@@ -148,6 +148,8 @@ def create_fuzzy_system(visualize_memberships = 0):
         rule29, rule30
         ])
     fuzzy_system = ctrl.ControlSystemSimulation(fuzzy_ctrl)
+
+    fuzzy_system.defuzzify_method = defuzzy_method
 
     return fuzzy_system
 #==============================================================================
@@ -385,7 +387,7 @@ def main():
     executor_array = []
 
     # Create fuzzy control syste
-    fuzzy_system = create_fuzzy_system(0)
+    fuzzy_system = create_fuzzy_system('bisector', 0)
 
     # Create thread for taking sensor values
     t1 = threading.Thread(target=get_sensor_readings, name='t1', args = (node_array, executor_array))
