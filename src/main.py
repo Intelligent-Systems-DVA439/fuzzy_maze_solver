@@ -21,6 +21,7 @@ import numpy as np
 from numpy import inf
 import skfuzzy as fuzz
 from skfuzzy import control as ctrl
+import matplotlib.pyplot as plt
 
 import rclpy
 # laser scan message struct
@@ -50,7 +51,7 @@ shutdown_flag = False
 
 #==============================================================================
 # Create fuzzy system
-def create_fuzzy_system():
+def create_fuzzy_system(visualize_memberships = 0):
     # Fuzzy variables
     # Define fuzzy input variables (sensors)
     # Normalized
@@ -91,6 +92,16 @@ def create_fuzzy_system():
     angular_movement['angular_stop'] = fuzz.trimf(angular_movement.universe, [-0.055, 0, 0.055]) 
     angular_movement['angular_left_slow'] = fuzz.trimf(angular_movement.universe, [0, 0.275, 0.550])
     angular_movement['angular_left_fast'] = fuzz.trimf(angular_movement.universe, [0.451, 0.725, 1])
+
+
+    # Visualize memberships
+    if(visualize_memberships != 0):
+        left_sensor.view()
+        front_sensor.view()
+        right_sensor.view()
+        linear_movement.view()
+        angular_movement.view()
+        plt.show()
 
 
     # Define fuzzy logic rules
@@ -374,7 +385,7 @@ def main():
     executor_array = []
 
     # Create fuzzy control syste
-    fuzzy_system = create_fuzzy_system()
+    fuzzy_system = create_fuzzy_system(0)
 
     # Create thread for taking sensor values
     t1 = threading.Thread(target=get_sensor_readings, name='t1', args = (node_array, executor_array))
