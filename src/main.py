@@ -387,7 +387,7 @@ def main():
     executor_array = []
 
     # Create fuzzy control syste
-    fuzzy_system = create_fuzzy_system('bisector', 0)
+    fuzzy_system = create_fuzzy_system('centroid', 0)
 
     # Create thread for taking sensor values
     t1 = threading.Thread(target=get_sensor_readings, name='t1', args = (node_array, executor_array))
