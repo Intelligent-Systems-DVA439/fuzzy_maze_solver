@@ -55,14 +55,15 @@ def create_fuzzy_system(defuzzy_method = 'centroid', visualize_memberships = 0):
     # Fuzzy variables
     # Define fuzzy input variables (sensors)
     # Normalized
-    left_sensor = ctrl.Antecedent(np.arange(0, 1, 0.01), 'left_sensor')
-    front_sensor = ctrl.Antecedent(np.arange(0, 1, 0.01), 'front_sensor')
-    right_sensor = ctrl.Antecedent(np.arange(0, 1, 0.01), 'right_sensor')
+    resolution = 0.0001
+    left_sensor = ctrl.Antecedent(np.arange(0, 1+resolution, resolution,), 'left_sensor')
+    front_sensor = ctrl.Antecedent(np.arange(0, 1+resolution, resolution,), 'front_sensor')
+    right_sensor = ctrl.Antecedent(np.arange(0, 1+resolution, resolution,), 'right_sensor')
 
     # Define fuzzy output variable (control signal)
     # Normalized
-    linear_movement = ctrl.Consequent(np.arange(-1, 1, 0.01), 'linear')
-    angular_movement = ctrl.Consequent(np.arange(-1, 1, 0.01), 'angular')
+    linear_movement = ctrl.Consequent(np.arange(-1, 1+resolution, resolution,), 'linear')
+    angular_movement = ctrl.Consequent(np.arange(-1, 1+resolution, resolution,), 'angular')
 
 
     # Define membership functions, using triangular and trapezoidal memberships
