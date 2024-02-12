@@ -149,6 +149,7 @@ def create_fuzzy_system(defuzzy_method = 'centroid', visualize_memberships = 0):
         ])
     fuzzy_system = ctrl.ControlSystemSimulation(fuzzy_ctrl)
 
+    # Change defuzzification method
     fuzzy_system.defuzzify_method = defuzzy_method
 
     return fuzzy_system
@@ -235,11 +236,11 @@ def movement_choice(fuzzy_system, min_sensor_value, max_sensor_value, min_linear
 
     # Provide normalized sensor values to fuzzy system
     # Lidar values go counter clockwise and start infront of the robot
-    # Left value is mean value of a 80 degree cone to the left
+    # Left value is mean value of a 70 degree cone to the left
     fuzzy_system.input['left_sensor'] = (np.mean(np_sensor_data[10:80]) - min_sensor_value)/(max_sensor_value - min_sensor_value)
-    # Front value is min value of a 20 degree cone forward
+    # Front value is min value of a 40 degree cone forward
     fuzzy_system.input['front_sensor'] = (np.min(np.concatenate((np_sensor_data[-20:], np_sensor_data[0:20]), axis=None)) - min_sensor_value)/(max_sensor_value - min_sensor_value)
-    # Right value is mean value of a 80 degree cone to the right
+    # Right value is mean value of a 70 degree cone to the right
     fuzzy_system.input['right_sensor'] = (np.mean(np_sensor_data[-80:-10]) - min_sensor_value)/(max_sensor_value - min_sensor_value)
     #print("\nL: ",np.mean(np_sensor_data[10:80]),", F: ",np.min(np.concatenate((np_sensor_data[-20:], np_sensor_data[0:20]), axis=None)),", R: ",np.mean(np_sensor_data[-80:-10]),"\n")
 
