@@ -12,17 +12,19 @@
 
 
 #------------------------------------------------------------------------------
-# Libraries
+# Base libraries
 import math
 import threading
 import time
 
+# Functional libraries
 import numpy as np
 from numpy import inf
 import skfuzzy as fuzz
 from skfuzzy import control as ctrl
 import matplotlib.pyplot as plt
 
+# Robot libraries
 import rclpy
 # laser scan message struct
 from sensor_msgs.msg import LaserScan
@@ -42,8 +44,6 @@ from std_srvs.srv import Empty
 position = None
 # Global array to receive sensor data (distance/range) from turtlebot
 raw_sensor_data = [-1 for x in range(360)]
-# Global variable to receive SLAM map data
-raw_map_data = None
 # Shutdown flag
 shutdown_flag = False
 #------------------------------------------------------------------------------
@@ -174,38 +174,6 @@ def get_sensor_readings(node_array, executor_array):
     # ros2 topic info /scan
     # https://www.youtube.com/watch?v=RFNNsDI2b6c&t=1s
     subscription = node.create_subscription(LaserScan, '/scan', sensor_listener_callback, 10)
-    subscription  # prevent unused variable warning
-    # Add node to node array for shutdown
-    node_array.append(node)
-
-    # Create new executor since only one can run on the global
-    executor = rclpy.executors.SingleThreadedExecutor()
-    executor.add_node(node)
-    # Add executor to executor array for shutdown
-    executor_array.append(executor)
-
-    # Spin until work is complete
-    rclpy.spin(node, executor)
-#==============================================================================
-
-#==============================================================================
-# Receive map from SLAM
-def get_map(node_array, executor_array):
-    # Create map subscriber/listener node
-    node = rclpy.create_node('map_subscriber')
-
-    # The function executed each time a message is received
-    def map_listener_callback(msg):
-        # Required so the array can be changed
-        global raw_map_data
-
-        # Store data in a global variable
-        raw_map_data = np.array(msg.data).reshape(msg.info.height, msg.info.width)
-
-    # Subscribe to the topic for the lidar/LaserScan
-    # ros2 topic info /scan
-    # https://www.youtube.com/watch?v=RFNNsDI2b6c&t=1s
-    subscription = node.create_subscription(OccupancyGrid, "/map", map_listener_callback, 10)
     subscription  # prevent unused variable warning
     # Add node to node array for shutdown
     node_array.append(node)
@@ -377,6 +345,9 @@ def shutdown_function(node_array, executor_array):
 def main():
     # Initialize rclpy
     rclpy.init()
+    # For destroying all nodes and executors, for a clean shutdown
+    node_array = []
+    executor_array = []
     # For normalization
     min_sensor_value = 0
     max_sensor_value = 3.51
@@ -384,9 +355,6 @@ def main():
     max_linear = 0.26
     min_angular = -1.82
     max_angular = 1.82
-    # For destroying all nodes and executors, for a clean shutdown
-    node_array = []
-    executor_array = []
 
     # Create fuzzy control syste
     fuzzy_system = create_fuzzy_system('centroid', 0)
