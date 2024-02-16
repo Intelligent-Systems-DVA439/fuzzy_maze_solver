@@ -14,8 +14,12 @@
 
 # Global variable to store turtlebot coordinates/position
 position = None
+# Global variable to store turtlebot velocity (linear and angular)
+velocity = None
 # Global array to receive sensor data (distance/range) from turtlebot
 raw_sensor_data = [-1 for x in range(360)]
 # Shutdown flag
 shutdown_flag = False
+# Flag for goal having been reached
+goal_flag = 0
 #------------------------------------------------------------------------------

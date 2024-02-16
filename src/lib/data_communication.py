@@ -31,14 +31,14 @@ def get_sensor_readings(node_array, executor_array):
     node = rclpy.create_node('sensor_subscriber')
 
     # The function executed each time a message is received
-    def sensor_listener_callback(msg):
+    def sensor_callback(msg):
         # Store data in a global array
         shared_variables.raw_sensor_data = msg.ranges
 
     # Subscribe to the topic for the lidar/LaserScan
     # ros2 topic info /scan
     # https://www.youtube.com/watch?v=RFNNsDI2b6c&t=1s
-    subscription = node.create_subscription(LaserScan, '/scan', sensor_listener_callback, 10)
+    subscription = node.create_subscription(LaserScan, '/scan', sensor_callback, 10)
     subscription  # prevent unused variable warning
     # Add node to node array for shutdown
     node_array.append(node)
@@ -54,18 +54,19 @@ def get_sensor_readings(node_array, executor_array):
 #==============================================================================
 
 #==============================================================================
-# Get turtlebot coordinates
-def get_coordinates(node_array, executor_array):
-    # Create subscriber node for coordinates of turtlebot
-    node = rclpy.create_node('coordinates_subscriber')
+# Get turtlebot coordinates and velocity
+def get_coordinates_velocity(node_array, executor_array):
+    # Create subscriber node for coordinates and velocity of turtlebot
+    node = rclpy.create_node('coordinates_velocity_subscriber')
 
     # The function executed each time a message is received
-    def coordinate_callback(msg):
+    def coordinates_velocity_callback(msg):
         # Store data in a global variable
         shared_variables.position = msg.pose.pose.position
+        shared_variables.velocity = msg.twist.twist
 
-    # Subscribe to the topic for the turtlebot coordinates
-    subscription = node.create_subscription(Odometry, 'odom', coordinate_callback, 10)
+    # Subscribe to the topic for the turtlebot coordinates and velocity
+    subscription = node.create_subscription(Odometry, 'odom', coordinates_velocity_callback, 10)
     subscription  # prevent unused variable warning
     # Add node to node array for shutdown
     node_array.append(node)

@@ -44,23 +44,23 @@ def main():
     min_angular = -1.82
     max_angular = 1.82
 
-    # Create fuzzy control syste
+    # Create fuzzy control system
     fuzzy_system = create_fuzzy_system('centroid', 0)
 
     # Data and communication threads
     # Create thread for taking sensor values
     t1 = threading.Thread(target=get_sensor_readings, name='t1', args = (node_array, executor_array))
-    # Thread for getting turtlebot coordinates
-    t2 = threading.Thread(target=get_coordinates, name='t4', args = (node_array, executor_array))
+    # Thread for getting turtlebot coordinates and velocity
+    t2 = threading.Thread(target=get_coordinates_velocity, name='t2', args = (node_array, executor_array))
 
     # Utility threads
     # Thread for reseting once goal is reached
     t3 = threading.Thread(target=reset_simulation, name='t3', args = (node_array,))
     # Thread for listening to keyboard input, once q, quit or exit is entered, initiates shutdown
-    t4 = threading.Thread(target=shutdown_function, name='t5', args = (node_array, executor_array))
+    t4 = threading.Thread(target=shutdown_function, name='t4', args = (node_array, executor_array))
 
-    # Create thread for controling robot
-    t5 = threading.Thread(target=robot_control, name='t2', args = (node_array, fuzzy_system, min_sensor_value, max_sensor_value, min_linear, max_linear, min_angular, max_angular))
+    # Create thread for controlling robot
+    t5 = threading.Thread(target=robot_control, name='t5', args = (node_array, fuzzy_system, min_sensor_value, max_sensor_value, min_linear, max_linear, min_angular, max_angular))
 
     # Start threads
     t1.start()

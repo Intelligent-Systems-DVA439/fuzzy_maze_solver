@@ -125,7 +125,7 @@ def create_fuzzy_system(defuzzy_method = 'centroid', visualize_memberships = 0):
         ])
     fuzzy_system = ctrl.ControlSystemSimulation(fuzzy_ctrl)
 
-    # Change defuzzification method
+    # Define defuzzification method
     fuzzy_system.defuzzify_method = defuzzy_method
 
     return fuzzy_system
