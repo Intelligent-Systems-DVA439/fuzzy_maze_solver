@@ -30,19 +30,8 @@ from lib.mapping import state_mapping
 
 
 #==============================================================================
-# Maze solver, decide which movement should be taken
-def movement_choice(fuzzy_system, min_sensor_value, max_sensor_value, min_linear, max_linear, min_angular, max_angular, state_map, previous_state):
-    # Get sensor values (percept)
-    np_sensor_data = np.array(shared_variables.raw_sensor_data)
-
-    # Stuck until sensor has been initialized and sensor values have been received
-    while(np.all(np_sensor_data == -1)):
-        print("sensor_value never received")
-        np_sensor_data = np.array(shared_variables.raw_sensor_data)
-
-    # Set all inf values to max value since average is calculated later
-    np_sensor_data[np_sensor_data == math.inf] = 3.5
-
+# Fuzzy movement choice
+def fuzzy_movement_choice(fuzzy_system, min_sensor_value, max_sensor_value, min_linear, max_linear, min_angular, max_angular, np_sensor_data):
     # Provide normalized sensor values to fuzzy system
     # Lidar values go counter clockwise and start infront of the robot
     # Left value is mean value of a 70 degree cone to the left
@@ -61,15 +50,53 @@ def movement_choice(fuzzy_system, min_sensor_value, max_sensor_value, min_linear
     linear_value = (fuzzy_system.output['linear'] - (-1)) * (max_linear - min_linear) / (1 - (-1)) + min_linear
     angular_value = (fuzzy_system.output['angular'] - (-1)) * (max_angular - min_angular) / (1 - (-1)) + min_angular
 
-    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    return linear_value, angular_value
+#==============================================================================
 
-    # Round values to prevent sensor error from "creating" new states, despite being in the same spot
-    current_state = np.round(np_sensor_data, 6)
+#==============================================================================
+# Global pathing and mapping
+def global_pathing(np_sensor_data, state_map, previous_state):
+    # Split into cones and take mean and then round values to prevent sensor errors from "creating" new states, despite being in the same spot
+    # Most stable setup i've managed to find, quite sure sensors have a decent amount of drift
+    num_chunks = len(np_sensor_data) // 10
+    current_state = np.round(np.array([np.mean(np_sensor_data[i*10:(i+1)*10]) for i in range(num_chunks)]), 0)
+    # First time, use current_state as previous_state
+    # After first time, previous state is provided as an argument and is the last loops current value (which is returned at the end)
     if(np.all(previous_state == -1)):
         previous_state = current_state
 
     # Do mapping of the maze
     state_mapping(state_map, previous_state, current_state)
+    
+    return current_state
+#==============================================================================
+
+#==============================================================================
+# Maze solver, decide which movement should be taken
+def movement_choice(fuzzy_system, min_sensor_value, max_sensor_value, min_linear, max_linear, min_angular, max_angular, state_map, previous_state):
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # Sensor values
+
+    # Get sensor values (percept)
+    np_sensor_data = np.array(shared_variables.raw_sensor_data)
+
+    # Stuck until sensor has been initialized and sensor values have been received
+    while(np.all(np_sensor_data == -1)):
+        print("sensor_value never received")
+        np_sensor_data = np.array(shared_variables.raw_sensor_data)
+
+    # Set all inf values to max value since average is calculated later
+    np_sensor_data[np_sensor_data == math.inf] = 3.5
+
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # Fuzzy
+
+    linear_value, angular_value = fuzzy_movement_choice(fuzzy_system, min_sensor_value, max_sensor_value, min_linear, max_linear, min_angular, max_angular, np_sensor_data)
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # Global path algorithm and mapping
+
+    current_state = global_pathing(np_sensor_data, state_map, previous_state)
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
     return linear_value, angular_value, current_state
 #==============================================================================
@@ -88,20 +115,15 @@ def robot_control(node_array, fuzzy_system, min_sensor_value, max_sensor_value, 
     # set message to correct struct type
     msg = Twist()
 
+    # Variables for global pathing and mapping
     state_map = {}
     current_state = np.full((360, 1), -1)
 
     while(shared_variables.shutdown_flag != True):
         # Decide which linear and angular movement should be taken
         linear_value, angular_value, current_state = movement_choice(fuzzy_system, min_sensor_value, max_sensor_value, min_linear, max_linear, min_angular, max_angular, state_map, current_state)
-        if len(state_map) == 3:
-            for i in state_map.keys():
-                for j in state_map.keys():
-                    if not np.array_equal(state_map[i].sensor_value, state_map[j].sensor_value):
-                        print(state_map[j].sensor_value-state_map[i].sensor_value)
-                        print("\n------------------------------------------------------")
         msg.linear.x = linear_value
         msg.angular.z = angular_value
         # Send message
-        #publisher.publish(msg)
+        publisher.publish(msg)
 #==============================================================================
