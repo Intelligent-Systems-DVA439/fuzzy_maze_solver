@@ -74,8 +74,29 @@ def global_pathing(np_sensor_data, state_map, path_list, previous_state):
         if state.goal != 1:
             # Increment value, since it's a minimization problem, shortest path
             state.value = state.value + 1
+
+    # Find which direction should be taken according to global pathing
+    # Check if current state has any neighbors (is not empty)
+    if not state_map[current_state.tostring()].edges:
+        # To begin with, the best state is just the first neighbor
+        best = state_map[current_state.tostring()].edges[0]
+        for edge in state_map[current_state.tostring()].edges:
+            if(state_map[edge.end.tostring()].value < state_map[best.end.tostring()].value):
+                best = edge
+        # Find which direction should be taken to get to next state
+        if (best.direction < 0):
+            # Right
+            direction = -1
+        elif (best.direction > 0):
+            # Left
+            direction = 1
+        else:
+            direction = 0
+    # No neighbors, then global pathing can't help and it gives no input
+    else:
+        direction = 0
     
-    return current_state
+    return current_state, direction
 #==============================================================================
 
 #==============================================================================
@@ -94,16 +115,21 @@ def movement_choice(fuzzy_system, min_sensor_value, max_sensor_value, min_linear
 
     # Set all inf values to max value since average is calculated later
     np_sensor_data[np_sensor_data == math.inf] = 3.5
-
     #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     # Fuzzy
 
-    linear_value, angular_value = fuzzy_movement_choice(fuzzy_system, min_sensor_value, max_sensor_value, min_linear, max_linear, min_angular, max_angular, np_sensor_data)
+    fuzzy_linear, fuzzy_angular = fuzzy_movement_choice(fuzzy_system, min_sensor_value, max_sensor_value, min_linear, max_linear, min_angular, max_angular, np_sensor_data)
     #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
     # Global path algorithm and mapping
 
-    current_state = global_pathing(np_sensor_data, state_map, path_list, previous_state)
+    current_state, global_pathing_direction = global_pathing(np_sensor_data, state_map, path_list, previous_state)
     #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+    # Final movement choice
+
+    # Linear velocity
+    linear_value = fuzzy_linear
+    # Where to turn is based on weighted sum of fuzzy and global pathing
+    angular_value = 1*fuzzy_angular + 1*global_pathing_direction
 
     return linear_value, angular_value, current_state
 #==============================================================================
