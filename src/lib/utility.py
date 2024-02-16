@@ -47,6 +47,7 @@ def reset_simulation(node_array):
         # Reset simulation once goal is reached
         if((shared_variables.position.x > 33) | (shared_variables.position.x < -33) | (shared_variables.position.y > 33) | (shared_variables.position.y < -33)):
             print("Goal reached, reseting")
+            time.sleep(1/100)
             reset_world.call_async(request)
             time.sleep(5)
 #==============================================================================
