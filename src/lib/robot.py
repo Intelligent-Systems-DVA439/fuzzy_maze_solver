@@ -77,21 +77,14 @@ def global_pathing(np_sensor_data, state_map, path_list, previous_state):
 
     # Find which direction should be taken according to global pathing
     # Check if current state has any neighbors (is not empty)
-    if not state_map[current_state.tostring()].edges:
+    if state_map[current_state.tostring()].edges:
         # To begin with, the best state is just the first neighbor
         best = state_map[current_state.tostring()].edges[0]
         for edge in state_map[current_state.tostring()].edges:
             if(state_map[edge.end.tostring()].value < state_map[best.end.tostring()].value):
                 best = edge
         # Find which direction should be taken to get to next state
-        if (best.direction < 0):
-            # Right
-            direction = -1
-        elif (best.direction > 0):
-            # Left
-            direction = 1
-        else:
-            direction = 0
+        direction = best.direction
     # No neighbors, then global pathing can't help and it gives no input
     else:
         direction = 0
@@ -129,7 +122,7 @@ def movement_choice(fuzzy_system, min_sensor_value, max_sensor_value, min_linear
     # Linear velocity
     linear_value = fuzzy_linear
     # Where to turn is based on weighted sum of fuzzy and global pathing
-    angular_value = 1*fuzzy_angular + 1*global_pathing_direction
+    angular_value = 1*fuzzy_angular + 0.2*global_pathing_direction
 
     return linear_value, angular_value, current_state
 #==============================================================================
