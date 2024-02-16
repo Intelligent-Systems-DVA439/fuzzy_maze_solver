@@ -25,12 +25,13 @@ from geometry_msgs.msg import Twist
 
 # Project libraries
 from lib import shared_variables
+from lib.mapping import state_mapping
 #------------------------------------------------------------------------------
 
 
 #==============================================================================
 # Maze solver, decide which movement should be taken
-def movement_choice(fuzzy_system, min_sensor_value, max_sensor_value, min_linear, max_linear, min_angular, max_angular):
+def movement_choice(fuzzy_system, min_sensor_value, max_sensor_value, min_linear, max_linear, min_angular, max_angular, state_map, previous_state):
     # Get sensor values (percept)
     np_sensor_data = np.array(shared_variables.raw_sensor_data)
 
@@ -60,7 +61,17 @@ def movement_choice(fuzzy_system, min_sensor_value, max_sensor_value, min_linear
     linear_value = (fuzzy_system.output['linear'] - (-1)) * (max_linear - min_linear) / (1 - (-1)) + min_linear
     angular_value = (fuzzy_system.output['angular'] - (-1)) * (max_angular - min_angular) / (1 - (-1)) + min_angular
 
-    return linear_value, angular_value
+    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+    # Round values to prevent sensor error from "creating" new states, despite being in the same spot
+    current_state = np.round(np_sensor_data, 6)
+    if(np.all(previous_state == -1)):
+        previous_state = current_state
+
+    # Do mapping of the maze
+    state_mapping(state_map, previous_state, current_state)
+
+    return linear_value, angular_value, current_state
 #==============================================================================
 
 #==============================================================================
@@ -77,11 +88,20 @@ def robot_control(node_array, fuzzy_system, min_sensor_value, max_sensor_value, 
     # set message to correct struct type
     msg = Twist()
 
+    state_map = {}
+    current_state = np.full((360, 1), -1)
+
     while(shared_variables.shutdown_flag != True):
         # Decide which linear and angular movement should be taken
-        linear_value, angular_value = movement_choice(fuzzy_system, min_sensor_value, max_sensor_value, min_linear, max_linear, min_angular, max_angular)
+        linear_value, angular_value, current_state = movement_choice(fuzzy_system, min_sensor_value, max_sensor_value, min_linear, max_linear, min_angular, max_angular, state_map, current_state)
+        if len(state_map) == 3:
+            for i in state_map.keys():
+                for j in state_map.keys():
+                    if not np.array_equal(state_map[i].sensor_value, state_map[j].sensor_value):
+                        print(state_map[j].sensor_value-state_map[i].sensor_value)
+                        print("\n------------------------------------------------------")
         msg.linear.x = linear_value
         msg.angular.z = angular_value
         # Send message
-        publisher.publish(msg)
+        #publisher.publish(msg)
 #==============================================================================
