@@ -26,7 +26,7 @@ from geometry_msgs.msg import Twist
 
 # Project libraries
 from lib import shared_variables
-from lib.mapping import state_mapping
+from lib.mapping import state_mapping, update_state_value
 #------------------------------------------------------------------------------
 
 
@@ -55,40 +55,18 @@ def fuzzy_movement_choice(fuzzy_system, min_sensor_value, max_sensor_value, min_
 #==============================================================================
 
 #==============================================================================
-# Global pathing and mapping
-def global_pathing(np_sensor_data, state_map, path_list, previous_state):
-    # NOTE! np array can not be used as a hash key, hence converting it to string
-
-    # Split into cones and take mean and then round values to prevent sensor errors from "creating" new states, despite being in the same spot
-    # Most stable setup i've managed to find, quite sure sensors have a decent amount of drift
-    num_chunks = len(np_sensor_data) // 10
-    current_state = np.round(np.array([np.mean(np_sensor_data[i*10:(i+1)*10]) for i in range(num_chunks)]), 0)
-    # First time, use current_state as previous_state
-    # After first time, previous state is provided as an argument and is the last loops current value (which is returned at the end)
-    if(np.all(previous_state == -1)):
-        previous_state = current_state
-
-    # Do mapping of the maze
-    state_mapping(state_map, path_list, previous_state, current_state)
-
-    # Update value of every state
-    for state in path_list:
-        # Unless goal state
-        if state.goal != 1:
-            # Increment value, since it's a minimization problem, shortest path
-            state.value = state.value + 1
-
-    # Find which direction should be taken according to global pathing
+# Decides which direction to go according to global pathing
+def pathing_direction(state_map, current_state):
     # Check if current state has any neighbors (is not empty)
     if state_map[current_state.tostring()].edges:
         # To begin with, the best state is just the first neighbor
-        best = state_map[current_state.tostring()].edges[0]
+        best_edge = state_map[current_state.tostring()].edges[0]
         for edge in state_map[current_state.tostring()].edges:
-            if(state_map[edge.end.tostring()].value < state_map[best.end.tostring()].value):
-                best = edge
+            if(state_map[edge.end.tostring()].value < state_map[best_edge.end.tostring()].value):
+                best_edge = edge
 
         # Find which direction should be taken to get to next state
-        direction = best.direction
+        direction = best_edge.direction
         # Random exploration, chance is reduced the more the maze is explored
         random_value = random.randint(0, 100000)
         if (len(state_map) < random_value):
@@ -96,16 +74,30 @@ def global_pathing(np_sensor_data, state_map, path_list, previous_state):
     # No neighbors, then global pathing can't help and it gives no input
     else:
         direction = 0
+
+    return direction
+#==============================================================================
+
+#==============================================================================
+# Global pathing and mapping
+def global_pathing(np_sensor_data, state_map, path_list, previous_state):
+    # NOTE! np array can not be used as a hash key, hence converting it to string
+
+    # Create current state and do mapping of the maze
+    current_state = state_mapping(state_map, path_list, previous_state, np_sensor_data)
+
+    # Update value of every state
+    update_state_value(state_map, path_list)
+
+    # Find which direction should be taken according to global pathing
+    direction = pathing_direction(state_map, current_state)
     
     return current_state, direction
 #==============================================================================
 
 #==============================================================================
-# Maze solver, decide which movement should be taken
+# Decide which movement should be taken
 def movement_choice(fuzzy_system, min_sensor_value, max_sensor_value, min_linear, max_linear, min_angular, max_angular, state_map, path_list, previous_state):
-    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    # Sensor values
-
     # Get sensor values (percept)
     np_sensor_data = np.array(shared_variables.raw_sensor_data)
 
@@ -116,17 +108,15 @@ def movement_choice(fuzzy_system, min_sensor_value, max_sensor_value, min_linear
 
     # Set all inf values to max value since average is calculated later
     np_sensor_data[np_sensor_data == math.inf] = 3.5
-    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
+
     # Fuzzy
-
     fuzzy_linear, fuzzy_angular = fuzzy_movement_choice(fuzzy_system, min_sensor_value, max_sensor_value, min_linear, max_linear, min_angular, max_angular, np_sensor_data)
-    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
+
     # Global path algorithm and mapping
-
     current_state, global_pathing_direction = global_pathing(np_sensor_data, state_map, path_list, previous_state)
-    #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
-    # Final movement choice
 
+    # Final movement choice
     # Linear velocity
     linear_value = fuzzy_linear
     # Where to turn is based on weighted sum of fuzzy and global pathing
