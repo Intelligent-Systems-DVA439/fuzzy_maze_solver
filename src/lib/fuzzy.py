@@ -42,31 +42,31 @@ def create_fuzzy_system(defuzzy_method = 'centroid', visualize_memberships = 0, 
 
     # Define membership functions, using triangular and trapezoidal memberships
     # Normalized sensor readings memberships
-    left_sensor['close'] = fuzz.trapmf(left_sensor.universe, [-math.inf, 0, 0.114, 0.228]) # "Lower", created using the fist value as being outside of range "to the left"
-    left_sensor['medium'] = fuzz.trimf(left_sensor.universe, [0.114, 0.228, 0.798])
-    left_sensor['far'] = fuzz.trapmf(left_sensor.universe, [0.228, 0.798, 1, math.inf]) # "Upper", created using the last value outside of range "to the right"
+    left_sensor['close'] = fuzz.trapmf(left_sensor.universe, [-math.inf, 0, 0.05, 0.15]) # "Lower", created using the fist value as being outside of range "to the left"
+    left_sensor['medium'] = fuzz.trimf(left_sensor.universe, [0.05, 0.15, 0.55])
+    left_sensor['far'] = fuzz.trapmf(left_sensor.universe, [0.15, 0.55, 1, math.inf]) # "Upper", created using the last value outside of range "to the right"
 
-    front_sensor['close'] = fuzz.trapmf(front_sensor.universe, [-math.inf, 0, 0.043, 0.085]) # "Lower", created using the fist value as being outside of range "to the left"
-    front_sensor['medium'] = fuzz.trimf(front_sensor.universe, [0.043, 0.085, 0.285])
-    front_sensor['far'] = fuzz.trapmf(front_sensor.universe, [0.085, 0.285, 1, math.inf]) # "Upper", created using the last value outside of range "to the right"
+    front_sensor['close'] = fuzz.trapmf(front_sensor.universe, [-math.inf, 0, 0.04, 0.08]) # "Lower", created using the fist value as being outside of range "to the left"
+    front_sensor['medium'] = fuzz.trimf(front_sensor.universe, [0.04, 0.08, 0.28])
+    front_sensor['far'] = fuzz.trapmf(front_sensor.universe, [0.08, 0.28, 1, math.inf]) # "Upper", created using the last value outside of range "to the right"
 
-    right_sensor['close'] = fuzz.trapmf(right_sensor.universe, [-math.inf, 0, 0.114, 0.228]) # "Lower", created using the fist value as being outside of range "to the left"
-    right_sensor['medium'] = fuzz.trimf(right_sensor.universe, [0.114, 0.228, 0.798])
-    right_sensor['far'] = fuzz.trapmf(right_sensor.universe, [0.228, 0.798, 1, math.inf]) # "Upper", created using the last value outside of range "to the right"
+    right_sensor['close'] = fuzz.trapmf(right_sensor.universe, [-math.inf, 0, 0.05, 0.15]) # "Lower", created using the fist value as being outside of range "to the left"
+    right_sensor['medium'] = fuzz.trimf(right_sensor.universe, [0.05, 0.15, 0.55])
+    right_sensor['far'] = fuzz.trapmf(right_sensor.universe, [0.15, 0.55, 1, math.inf]) # "Upper", created using the last value outside of range "to the right"
 
     # Normalized control output memberships, use tirangular even at the edges since output has limits
     # Linear
-    linear_movement['linear_reverse'] = fuzz.trimf(linear_movement.universe, [-1, -0.577, -0.154])
-    linear_movement['linear_stop'] = fuzz.trimf(linear_movement.universe, [-0.154, 0, 0.154])
-    linear_movement['linear_forward'] = fuzz.trimf(linear_movement.universe, [0.154, 0.577, 1])
+    linear_movement['linear_reverse'] = fuzz.trimf(linear_movement.universe, [-1, -0.58, -0.15])
+    linear_movement['linear_stop'] = fuzz.trimf(linear_movement.universe, [-0.15, 0, 0.15])
+    linear_movement['linear_forward'] = fuzz.trimf(linear_movement.universe, [0.15, 0.58, 1])
 
     # Angular
     # z-aix is positive counter clockwise, and negative clockwise (viewed from above)
-    angular_movement['angular_right_fast'] = fuzz.trimf(angular_movement.universe, [-1, -0.725, -0.451])
-    angular_movement['angular_right_slow'] = fuzz.trimf(angular_movement.universe, [-0.550, -0.275, 0])
-    angular_movement['angular_stop'] = fuzz.trimf(angular_movement.universe, [-0.055, 0, 0.055])
-    angular_movement['angular_left_slow'] = fuzz.trimf(angular_movement.universe, [0, 0.275, 0.550])
-    angular_movement['angular_left_fast'] = fuzz.trimf(angular_movement.universe, [0.451, 0.725, 1])
+    angular_movement['angular_right_fast'] = fuzz.trimf(angular_movement.universe, [-1, -0.73, -0.45])
+    angular_movement['angular_right_slow'] = fuzz.trimf(angular_movement.universe, [-0.55, -0.28, 0])
+    angular_movement['angular_stop'] = fuzz.trimf(angular_movement.universe, [-0.05, 0, 0.05])
+    angular_movement['angular_left_slow'] = fuzz.trimf(angular_movement.universe, [0, 0.28, 0.55])
+    angular_movement['angular_left_fast'] = fuzz.trimf(angular_movement.universe, [0.45, 0.73, 1])
 
 
     # Visualize memberships
