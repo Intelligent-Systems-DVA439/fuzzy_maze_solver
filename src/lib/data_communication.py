@@ -36,8 +36,6 @@ def get_sensor_readings(node_array, executor_array):
         shared_variables.raw_sensor_data = msg.ranges
 
     # Subscribe to the topic for the lidar/LaserScan
-    # ros2 topic info /scan
-    # https://www.youtube.com/watch?v=RFNNsDI2b6c&t=1s
     subscription = node.create_subscription(LaserScan, '/scan', sensor_callback, 10)
     subscription  # prevent unused variable warning
     # Add node to node array for shutdown
