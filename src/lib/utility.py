@@ -45,7 +45,7 @@ def reset_simulation(node_array):
     # Continously check if turtlebot has made it out of the maze
     while(shared_variables.shutdown_flag == False):
         # Reset simulation once goal is reached
-        if((shared_variables.position.x > 33) | (shared_variables.position.x < -33) | (shared_variables.position.y > 33) | (shared_variables.position.y < -33)):
+        if((shared_variables.position.x > 9) | (shared_variables.position.x < -9) | (shared_variables.position.y > 9) | (shared_variables.position.y < -9)):
             print("Goal reached, reseting")
             reset_world.call_async(request)
             time.sleep(2)
