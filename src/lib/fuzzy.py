@@ -26,11 +26,10 @@ import matplotlib.pyplot as plt
 
 #==============================================================================
 # Create fuzzy system
-def create_fuzzy_system(defuzzy_method = 'centroid', visualize_memberships = 0):
+def create_fuzzy_system(defuzzy_method = 'centroid', visualize_memberships = 0, resolution = 0.0001):
     # Fuzzy variables
     # Define fuzzy input variables (sensors)
     # Normalized
-    resolution = 0.0001
     left_sensor = ctrl.Antecedent(np.arange(0, 1+resolution, resolution,), 'left_sensor')
     front_sensor = ctrl.Antecedent(np.arange(0, 1+resolution, resolution,), 'front_sensor')
     right_sensor = ctrl.Antecedent(np.arange(0, 1+resolution, resolution,), 'right_sensor')
@@ -71,7 +70,7 @@ def create_fuzzy_system(defuzzy_method = 'centroid', visualize_memberships = 0):
 
 
     # Visualize memberships
-    if(visualize_memberships != 0):
+    if visualize_memberships:
         left_sensor.view()
         front_sensor.view()
         right_sensor.view()
