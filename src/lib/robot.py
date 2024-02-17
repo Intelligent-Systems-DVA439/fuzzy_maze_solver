@@ -14,6 +14,7 @@
 
 # Base libraries
 import math
+import random
 
 # Functional libraries
 import numpy as np
@@ -56,6 +57,8 @@ def fuzzy_movement_choice(fuzzy_system, min_sensor_value, max_sensor_value, min_
 #==============================================================================
 # Global pathing and mapping
 def global_pathing(np_sensor_data, state_map, path_list, previous_state):
+    # NOTE! np array can not be used as a hash key, hence converting it to string
+
     # Split into cones and take mean and then round values to prevent sensor errors from "creating" new states, despite being in the same spot
     # Most stable setup i've managed to find, quite sure sensors have a decent amount of drift
     num_chunks = len(np_sensor_data) // 10
@@ -83,8 +86,13 @@ def global_pathing(np_sensor_data, state_map, path_list, previous_state):
         for edge in state_map[current_state.tostring()].edges:
             if(state_map[edge.end.tostring()].value < state_map[best.end.tostring()].value):
                 best = edge
+
         # Find which direction should be taken to get to next state
         direction = best.direction
+        # Random exploration, chance is reduced the more the maze is explored
+        random_value = random.randint(0, 100000)
+        if (len(state_map) < random_value):
+            direction = -direction
     # No neighbors, then global pathing can't help and it gives no input
     else:
         direction = 0
@@ -122,7 +130,7 @@ def movement_choice(fuzzy_system, min_sensor_value, max_sensor_value, min_linear
     # Linear velocity
     linear_value = fuzzy_linear
     # Where to turn is based on weighted sum of fuzzy and global pathing
-    angular_value = 1*fuzzy_angular + 0.2*global_pathing_direction
+    angular_value = 1*fuzzy_angular + 1*global_pathing_direction
 
     return linear_value, angular_value, current_state
 #==============================================================================

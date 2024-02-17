@@ -58,6 +58,7 @@ def state_mapping(state_map, path_list, previous_state, current_state):
     # If goal is reached, set State to goal state
     if(shared_variables.goal_flag == 1):
         goal = 1
+        print(len(state_map))
         # Flush list once goal is reached
         path_list = []
     else:
