@@ -20,6 +20,4 @@ velocity = None
 raw_sensor_data = [-1 for x in range(360)]
 # Shutdown flag
 shutdown_flag = False
-# Flag for goal having been reached
-goal_flag = False
 #------------------------------------------------------------------------------
