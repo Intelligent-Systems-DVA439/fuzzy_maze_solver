@@ -61,6 +61,9 @@ def update_state_value(state_map, path_list, alpha = 0.5, gamma = 0.2):
                 best_successor = 0
             # Based on Q-learning monte carlo stochastic model
             state.value = state.value + alpha * (1 + gamma * best_successor - state.value)
+
+    # Nothing valuable to return
+    return None
 #==============================================================================
 
 #==============================================================================
@@ -88,10 +91,10 @@ def state_mapping(state_map, path_list, previous_state, np_sensor_data):
 
     # If goal is reached, set State to goal state
     if((shared_variables.position.x > 9) | (shared_variables.position.x < -9) | (shared_variables.position.y > 9) | (shared_variables.position.y < -9)):
-        goal = True
         print(len(state_map))
         # Flush path list once goal is reached
         path_list = []
+        goal = True
     else:
         goal = False
 

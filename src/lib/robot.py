@@ -30,17 +30,28 @@ from lib.mapping import state_mapping, update_state_value
 #------------------------------------------------------------------------------
 
 
+#------------------------------------------------------------------------------
+# Class for range of values, containing min and max value
+class Range:
+    def __init__(self, min_val, max_val):
+        self.min_val = min_val
+        self.max_val = max_val
+    def __repr__(self):
+        return f"({self.min_val}, {self.max_val})"
+#------------------------------------------------------------------------------
+
+
 #==============================================================================
 # Fuzzy movement choice
-def fuzzy_movement_choice(fuzzy_system, min_sensor_value, max_sensor_value, min_linear, max_linear, min_angular, max_angular, np_sensor_data):
+def fuzzy_movement_choice(fuzzy_system, sensor, linear, angular, np_sensor_data):
     # Provide normalized sensor values to fuzzy system
     # Lidar values go counter clockwise and start infront of the robot
     # Left value is mean value of a 70 degree cone to the left
-    fuzzy_system.input['left_sensor'] = (np.mean(np_sensor_data[10:80]) - min_sensor_value)/(max_sensor_value - min_sensor_value)
+    fuzzy_system.input['left_sensor'] = (np.mean(np_sensor_data[10:80]) - sensor.min_val)/(sensor.max_val - sensor.min_val)
     # Front value is min value of a 40 degree cone forward
-    fuzzy_system.input['front_sensor'] = (np.min(np.concatenate((np_sensor_data[-20:], np_sensor_data[0:20]), axis=None)) - min_sensor_value)/(max_sensor_value - min_sensor_value)
+    fuzzy_system.input['front_sensor'] = (np.min(np.concatenate((np_sensor_data[-20:], np_sensor_data[0:20]), axis=None)) - sensor.min_val)/(sensor.max_val - sensor.min_val)
     # Right value is mean value of a 70 degree cone to the right
-    fuzzy_system.input['right_sensor'] = (np.mean(np_sensor_data[-80:-10]) - min_sensor_value)/(max_sensor_value - min_sensor_value)
+    fuzzy_system.input['right_sensor'] = (np.mean(np_sensor_data[-80:-10]) - sensor.min_val)/(sensor.max_val - sensor.min_val)
     #print("\nL: ",np.mean(np_sensor_data[10:80]),", F: ",np.min(np.concatenate((np_sensor_data[-20:], np_sensor_data[0:20]), axis=None)),", R: ",np.mean(np_sensor_data[-80:-10]),"\n")
 
     # Fuzzy computation
@@ -48,8 +59,8 @@ def fuzzy_movement_choice(fuzzy_system, min_sensor_value, max_sensor_value, min_
 
     # Fuzzy decision on which movement should be taken
     # Also "unnormalize" the data
-    linear_value = (fuzzy_system.output['linear'] - (-1)) * (max_linear - min_linear) / (1 - (-1)) + min_linear
-    angular_value = (fuzzy_system.output['angular'] - (-1)) * (max_angular - min_angular) / (1 - (-1)) + min_angular
+    linear_value = (fuzzy_system.output['linear'] - (-1)) * (linear.max_val - linear.min_val) / (1 - (-1)) + linear.min_val
+    angular_value = (fuzzy_system.output['angular'] - (-1)) * (angular.max_val - angular.min_val) / (1 - (-1)) + angular.min_val
 
     return linear_value, angular_value
 #==============================================================================
@@ -97,7 +108,7 @@ def global_pathing(np_sensor_data, state_map, path_list, previous_state):
 
 #==============================================================================
 # Decide which movement should be taken
-def movement_choice(fuzzy_system, min_sensor_value, max_sensor_value, min_linear, max_linear, min_angular, max_angular, state_map, path_list, previous_state):
+def movement_choice(fuzzy_system, sensor, linear, angular, state_map, path_list, previous_state):
     # Get sensor values (percept)
     np_sensor_data = np.array(shared_variables.raw_sensor_data)
 
@@ -111,7 +122,7 @@ def movement_choice(fuzzy_system, min_sensor_value, max_sensor_value, min_linear
 
 
     # Fuzzy
-    fuzzy_linear, fuzzy_angular = fuzzy_movement_choice(fuzzy_system, min_sensor_value, max_sensor_value, min_linear, max_linear, min_angular, max_angular, np_sensor_data)
+    fuzzy_linear, fuzzy_angular = fuzzy_movement_choice(fuzzy_system, sensor, linear, angular, np_sensor_data)
 
     # Global path algorithm and mapping
     current_state, global_pathing_direction = global_pathing(np_sensor_data, state_map, path_list, previous_state)
@@ -127,7 +138,7 @@ def movement_choice(fuzzy_system, min_sensor_value, max_sensor_value, min_linear
 
 #==============================================================================
 # Controls turtlebot in gazebo
-def robot_control(node_array, fuzzy_system, min_sensor_value, max_sensor_value, min_linear, max_linear, min_angular, max_angular):
+def robot_control(node_array, fuzzy_system, sensor, linear, angular):
     # Create publisher node
     # https://www.youtube.com/watch?v=yEwi1__NJrE
     node = rclpy.create_node('movement_publisher')
@@ -146,9 +157,12 @@ def robot_control(node_array, fuzzy_system, min_sensor_value, max_sensor_value, 
 
     while(shared_variables.shutdown_flag != True):
         # Decide which linear and angular movement should be taken
-        linear_value, angular_value, current_state = movement_choice(fuzzy_system, min_sensor_value, max_sensor_value, min_linear, max_linear, min_angular, max_angular, state_map, path_list, current_state)
+        linear_value, angular_value, current_state = movement_choice(fuzzy_system, sensor, linear, angular, state_map, path_list, current_state)
         msg.linear.x = linear_value
         msg.angular.z = angular_value
         # Send message
         publisher.publish(msg)
+
+    # Only returns on shutdown
+    return None
 #==============================================================================

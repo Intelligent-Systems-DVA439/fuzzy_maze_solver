@@ -49,6 +49,9 @@ def get_sensor_readings(node_array, executor_array):
 
     # Spin until work is complete
     rclpy.spin(node, executor)
+
+    # Only returns on shutdown
+    return None
 #==============================================================================
 
 #==============================================================================
@@ -77,4 +80,7 @@ def get_coordinates_velocity(node_array, executor_array):
 
     # Spin until work is complete
     rclpy.spin(node, executor)
+
+    # Only returns on shutdown
+    return None
 #==============================================================================

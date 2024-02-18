@@ -1,4 +1,4 @@
-# main.py
+# utility.py
 #==============================================================================
 # Author: Carl Larsson
 # Description: Utility functions
@@ -49,6 +49,9 @@ def reset_simulation(node_array):
             print("Goal reached, reseting")
             reset_world.call_async(request)
             time.sleep(2)
+
+    # Only returns on shutdown
+    return None
 #==============================================================================
 
 #==============================================================================
@@ -82,4 +85,7 @@ def shutdown_function(node_array, executor_array):
     rclpy.shutdown()
 
     print("\n Shutdown succesful, have a nice day!\n")
+
+    # Only returns on shutdown
+    return None
 #==============================================================================

@@ -20,10 +20,10 @@ import time
 import rclpy
 
 # Project libraries
-from lib.utility import *
-from lib.data_communication import *
-from lib.robot import robot_control
-from lib.fuzzy import *
+from lib.utility import reset_simulation, shutdown_function
+from lib.data_communication import get_sensor_readings, get_coordinates_velocity
+from lib.robot import robot_control, Range
+from lib.fuzzy import create_fuzzy_system
 #------------------------------------------------------------------------------
 
 
@@ -37,12 +37,9 @@ def main():
     node_array = []
     executor_array = []
     # For normalization
-    min_sensor_value = 0
-    max_sensor_value = 3.51
-    min_linear = -0.26
-    max_linear = 0.26
-    min_angular = -1.82
-    max_angular = 1.82
+    sensor = Range(0, 3.51)
+    linear = Range(-0.26, 0.26)
+    angular = Range(-1.82, 1.82)
 
     # Create fuzzy control system
     fuzzy_system = create_fuzzy_system('centroid', 0)
@@ -60,7 +57,7 @@ def main():
     t4 = threading.Thread(target=shutdown_function, name='t4', args = (node_array, executor_array))
 
     # Create thread for controlling robot
-    t5 = threading.Thread(target=robot_control, name='t5', args = (node_array, fuzzy_system, min_sensor_value, max_sensor_value, min_linear, max_linear, min_angular, max_angular))
+    t5 = threading.Thread(target=robot_control, name='t5', args = (node_array, fuzzy_system, sensor, linear, angular))
 
     # Start threads
     t1.start()
@@ -76,6 +73,9 @@ def main():
     t3.join()
     t4.join()
     t5.join()
+
+    # Only returns on shutdown
+    return None
 #==============================================================================
 
 #==============================================================================
