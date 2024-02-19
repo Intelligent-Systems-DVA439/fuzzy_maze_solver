@@ -52,7 +52,7 @@ def reset_simulation(node_array):
             print("Goal reached, reseting")
             time.sleep(1/100)
             reset_world.call_async(request)
-            time.sleep(1/100)
+            time.sleep(1/10)
 
     # Only returns on shutdown
     return None
