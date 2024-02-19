@@ -33,7 +33,7 @@ def reset_simulation(node_array):
     reset_world = node.create_client(Empty, '/reset_world')
     # Wait until reset service is ready
     reset_world.wait_for_service()
-    # Reset request
+    # Reset request message
     request = Empty.Request()
     # Add node to node array for shutdown
     node_array.append(node)
@@ -45,10 +45,14 @@ def reset_simulation(node_array):
     # Continously check if turtlebot has made it out of the maze
     while(shared_variables.shutdown_flag == False):
         # Reset simulation once goal is reached
-        if((shared_variables.position.x > 9) | (shared_variables.position.x < -9) | (shared_variables.position.y > 9) | (shared_variables.position.y < -9)):
+        if((shared_variables.position.x > shared_variables.maze_boundary_coordinate) | 
+           (shared_variables.position.x < -shared_variables.maze_boundary_coordinate) | 
+           (shared_variables.position.y > shared_variables.maze_boundary_coordinate) | 
+           (shared_variables.position.y < -shared_variables.maze_boundary_coordinate)):
             print("Goal reached, reseting")
+            time.sleep(1/100)
             reset_world.call_async(request)
-            time.sleep(2)
+            time.sleep(1/100)
 
     # Only returns on shutdown
     return None
@@ -69,7 +73,7 @@ def shutdown_function(node_array, executor_array):
     # Exit all forever while loops so threads can join
     shared_variables.shutdown_flag = True
 
-    time.sleep(1)
+    time.sleep(1/10)
 
     # Destroy all nodes explicitly
     for node in node_array:
@@ -79,7 +83,7 @@ def shutdown_function(node_array, executor_array):
     for executor in executor_array:
         executor.shutdown()
 
-    time.sleep(1)
+    time.sleep(1/10)
 
     # Shutdown and free all rclpy resources
     rclpy.shutdown()
