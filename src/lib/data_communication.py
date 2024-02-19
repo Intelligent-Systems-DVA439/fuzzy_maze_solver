@@ -62,7 +62,7 @@ def get_coordinates_velocity(node_array, executor_array):
 
     # The function executed each time a message is received
     def coordinates_velocity_callback(msg):
-        # Store data in a global variable
+        # Store data in a global variables
         shared_variables.position = msg.pose.pose.position
         shared_variables.velocity = msg.twist.twist
 
