@@ -17,7 +17,6 @@ import math
 
 # Functional libraries
 import numpy as np
-from numpy import inf
 import skfuzzy as fuzz
 from skfuzzy import control as ctrl
 import matplotlib.pyplot as plt
@@ -42,17 +41,20 @@ def create_fuzzy_system(defuzzy_method = 'centroid', visualize_memberships = 0, 
 
     # Define membership functions, using triangular and trapezoidal memberships
     # Normalized sensor readings memberships
-    left_sensor['close'] = fuzz.trapmf(left_sensor.universe, [-math.inf, 0, 0.05, 0.15]) # "Lower", created using the fist value as being outside of range "to the left"
-    left_sensor['medium'] = fuzz.trimf(left_sensor.universe, [0.05, 0.15, 0.55])
-    left_sensor['far'] = fuzz.trapmf(left_sensor.universe, [0.15, 0.55, 1, math.inf]) # "Upper", created using the last value outside of range "to the right"
+    side_sensor_close_100 = 0.05 # Affects jittering towards wall
+    side_sensor_close_0 = 0.15 # Affects jittering towards wall
+    side_sensor_far_100 = 0.55 # Affects cornering and how close to corner it goes, aswell as willingness to enter openings
+    left_sensor['close'] = fuzz.trapmf(left_sensor.universe, [-math.inf, 0, side_sensor_close_100, side_sensor_close_0]) # "Lower", created using the fist value as being outside of range "to the left"
+    left_sensor['medium'] = fuzz.trimf(left_sensor.universe, [side_sensor_close_100, side_sensor_close_0, side_sensor_far_100])
+    left_sensor['far'] = fuzz.trapmf(left_sensor.universe, [side_sensor_close_0, side_sensor_far_100, 1, math.inf]) # "Upper", created using the last value outside of range "to the right"
 
     front_sensor['close'] = fuzz.trapmf(front_sensor.universe, [-math.inf, 0, 0.04, 0.08]) # "Lower", created using the fist value as being outside of range "to the left"
     front_sensor['medium'] = fuzz.trimf(front_sensor.universe, [0.04, 0.08, 0.28])
     front_sensor['far'] = fuzz.trapmf(front_sensor.universe, [0.08, 0.28, 1, math.inf]) # "Upper", created using the last value outside of range "to the right"
 
-    right_sensor['close'] = fuzz.trapmf(right_sensor.universe, [-math.inf, 0, 0.05, 0.15]) # "Lower", created using the fist value as being outside of range "to the left"
-    right_sensor['medium'] = fuzz.trimf(right_sensor.universe, [0.05, 0.15, 0.55])
-    right_sensor['far'] = fuzz.trapmf(right_sensor.universe, [0.15, 0.55, 1, math.inf]) # "Upper", created using the last value outside of range "to the right"
+    right_sensor['close'] = fuzz.trapmf(right_sensor.universe, [-math.inf, 0, side_sensor_close_100, side_sensor_close_0]) # "Lower", created using the fist value as being outside of range "to the left"
+    right_sensor['medium'] = fuzz.trimf(right_sensor.universe, [side_sensor_close_100, side_sensor_close_0, side_sensor_far_100])
+    right_sensor['far'] = fuzz.trapmf(right_sensor.universe, [side_sensor_close_0, side_sensor_far_100, 1, math.inf]) # "Upper", created using the last value outside of range "to the right"
 
     # Normalized control output memberships, use tirangular even at the edges since output has limits
     # Linear
