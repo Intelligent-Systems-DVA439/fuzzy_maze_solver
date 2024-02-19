@@ -50,7 +50,7 @@ def reset_simulation(node_array):
            (shared_variables.position.y > shared_variables.maze_boundary_coordinate) | 
            (shared_variables.position.y < -shared_variables.maze_boundary_coordinate)):
             print("Goal reached, reseting")
-            time.sleep(1/100)
+            time.sleep(1/50)
             reset_world.call_async(request)
             time.sleep(1/10)
 
