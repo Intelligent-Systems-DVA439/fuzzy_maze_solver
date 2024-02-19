@@ -32,7 +32,6 @@ from lib.fuzzy import create_fuzzy_system
 def main():
     # Initialize rclpy
     rclpy.init()
-    time.sleep(1)
     # For destroying all nodes and executors, for a clean shutdown
     node_array = []
     executor_array = []
@@ -62,7 +61,7 @@ def main():
     # Start threads
     t1.start()
     t2.start()
-    time.sleep(1)
+    time.sleep(1/10)
     t3.start()
     t4.start()
     t5.start()
