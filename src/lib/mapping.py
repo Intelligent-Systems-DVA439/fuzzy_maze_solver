@@ -48,6 +48,7 @@ class State:
 # Update state values, using an algorihtm inspired by stochastic Q-learning monte carlo
 def update_state_value(state_map, path_list, alpha = 0.5, gamma = 1, reward = 1):
     # Update states in reverse order
+    # Better since formula depends on best NEXT state, so going backwards results in faster convergance than going forwards
     for state in reversed(path_list):
         # Unless goal state
         if not state.goal:
@@ -72,7 +73,7 @@ def update_state_value(state_map, path_list, alpha = 0.5, gamma = 1, reward = 1)
 #==============================================================================
 
 #==============================================================================
-# Creates a map using states (sensor values and velocity)
+# Creates a map using states (sensor values and global position)
 # state_map is a hash_map. previous_state and current_state are np arrays
 # goal is a bool for if we are in goal state
 def state_mapping(state_map, path_list, previous_state, np_sensor_data):
@@ -84,8 +85,8 @@ def state_mapping(state_map, path_list, previous_state, np_sensor_data):
 
 
     # Get current state
-    # All sensor values and velocity (all internal information available), rounded to 2 decimals
-    current_state = np.round(np.concatenate((np_sensor_data, shared_variables.velocity.linear.x, shared_variables.velocity.angular.z), axis=None), 2)
+    # All sensor values, rounded to 2 decimals, and global position
+    current_state = np.concatenate((np.round(np_sensor_data, 2), shared_variables.position.x, shared_variables.position.y), axis=None)
     # First time, use current_state as previous_state
     # After first time, previous state is provided as an argument and is the last loops current value (which is returned at the end)
     if(np.all(previous_state == -1)):
@@ -98,6 +99,8 @@ def state_mapping(state_map, path_list, previous_state, np_sensor_data):
        (shared_variables.position.y > shared_variables.maze_boundary_coordinate) |
        (shared_variables.position.y < -shared_variables.maze_boundary_coordinate)):
         print(len(state_map))
+        print("\n first state added value:")
+        print(state_map[next(iter(state_map))].value)
         # Flush path list once goal is reached
         path_list = []
         goal = True
