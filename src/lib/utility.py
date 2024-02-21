@@ -61,12 +61,10 @@ def reset_simulation(node_array):
 #==============================================================================
 # Shutdown function
 def shutdown_function(node_array, executor_array):
-    user_input = ""
-
     # Wait for keyboard input q, quit or exit, then initiate shutdown
     while(1):
         user_input = input()
-        if((user_input.lower() == "q") | (user_input.lower() == "quit") | (user_input.lower() == "exit")):
+        if((user_input.lower() == "q") | (user_input.lower() == "quit") | (user_input.lower() == "exit") | (user_input.lower() == "stop")):
             break
         time.sleep(1/100)
 

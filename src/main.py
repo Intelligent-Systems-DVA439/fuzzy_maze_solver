@@ -51,6 +51,7 @@ def main():
 
     # Utility threads
     # Thread for reseting once goal is reached
+    # Threading requires the args to be sent as a tuple, hence the (arg1,) despite only sending 1 arg
     t3 = threading.Thread(target=reset_simulation, name='t3', args = (node_array,))
     # Thread for listening to keyboard input, once q, quit or exit is entered, initiates shutdown
     t4 = threading.Thread(target=shutdown_function, name='t4', args = (node_array, executor_array))
