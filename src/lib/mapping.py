@@ -46,7 +46,7 @@ class State:
 
 #==============================================================================
 # Update state values, using an algorihtm inspired by stochastic Q-learning monte carlo
-def update_state_value(state_map, path_list, alpha = 0.5, gamma = 1, reward = 1):
+def update_state_value(state_map, path_list, alpha = 0.5, reward = 1, gamma = 1):
     # Update states in reverse order
     # Better since formula depends on best NEXT state, so going backwards results in faster convergance than going forwards
     for state in reversed(path_list):
@@ -76,7 +76,7 @@ def update_state_value(state_map, path_list, alpha = 0.5, gamma = 1, reward = 1)
 # Creates a map using states (sensor values and global position)
 # state_map is a hash_map. previous_state and current_state are np arrays
 # goal is a bool for if we are in goal state
-def state_mapping(state_map, path_list, previous_state, np_sensor_data):
+def state_mapping(np_sensor_data, state_map, path_list, previous_state):
     # NOTE! np array can not be used as a hash key, hence converting it to string
 
     # Wait until velocity has a value (aka until the turtlebot velocity message has been received)

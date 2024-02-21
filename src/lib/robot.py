@@ -43,7 +43,7 @@ class Range:
 
 #==============================================================================
 # Fuzzy movement choice
-def fuzzy_movement_choice(fuzzy_system, sensor, linear, angular, np_sensor_data):
+def fuzzy_movement_choice(np_sensor_data, fuzzy_system, sensor, linear, angular):
     # Provide normalized sensor values to fuzzy system
     # Lidar values go counter clockwise and start infront of the robot
     # Left value is mean value of a 70 degree cone to the left
@@ -66,7 +66,7 @@ def fuzzy_movement_choice(fuzzy_system, sensor, linear, angular, np_sensor_data)
 
 #==============================================================================
 # Decides which direction to go according to global pathing
-def pathing_direction(state_map, current_state, fuzzy_angular):
+def pathing_direction(fuzzy_angular, state_map, current_state):
     # NOTE! np array can not be used as a hash key, hence converting it to string
 
     # Check if current state has any neighbors (is not empty)
@@ -109,15 +109,15 @@ def pathing_direction(state_map, current_state, fuzzy_angular):
 
 #==============================================================================
 # Global pathing and mapping
-def global_pathing(np_sensor_data, state_map, path_list, previous_state, fuzzy_angular):
+def global_pathing(np_sensor_data, fuzzy_angular, state_map, path_list, previous_state):
     # Create current state and do mapping of the maze
-    current_state = state_mapping(state_map, path_list, previous_state, np_sensor_data)
+    current_state = state_mapping(np_sensor_data, state_map, path_list, previous_state)
 
     # Update value of every state
     update_state_value(state_map, path_list)
 
     # Find which direction should be taken according to global pathing
-    direction = pathing_direction(state_map, current_state, fuzzy_angular)
+    direction = pathing_direction(fuzzy_angular, state_map, current_state)
     
     return current_state, direction
 #==============================================================================
@@ -137,10 +137,10 @@ def movement_choice(fuzzy_system, sensor, linear, angular, state_map, path_list,
 
 
     # Fuzzy
-    fuzzy_linear, fuzzy_angular = fuzzy_movement_choice(fuzzy_system, sensor, linear, angular, np_sensor_data)
+    fuzzy_linear, fuzzy_angular = fuzzy_movement_choice(np_sensor_data, fuzzy_system, sensor, linear, angular)
 
     # Global path algorithm and mapping
-    current_state, global_pathing_direction = global_pathing(np_sensor_data, state_map, path_list, previous_state, fuzzy_angular)
+    current_state, global_pathing_direction = global_pathing(np_sensor_data, fuzzy_angular, state_map, path_list, previous_state)
 
     # Final movement choice
     # Linear velocity
