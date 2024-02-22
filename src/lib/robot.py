@@ -173,8 +173,8 @@ def robot_control(node_array, fuzzy_system, sensor, linear, angular):
            (shared_variables.position.x < -shared_variables.maze_boundary_coordinate) |
            (shared_variables.position.y > shared_variables.maze_boundary_coordinate) |
            (shared_variables.position.y < -shared_variables.maze_boundary_coordinate)):
-            msg.linear.x = 0
-            msg.angular.z = 0
+            msg.linear.x = 0.0
+            msg.angular.z = 0.0
 
         # Send message
         publisher.publish(msg)

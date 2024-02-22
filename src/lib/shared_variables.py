@@ -21,5 +21,5 @@ raw_sensor_data = [-1 for x in range(360)]
 # Shutdown flag
 shutdown_flag = False
 # Maze boundry coordinates (assumes maze is centered and square)
-maze_boundary_coordinate = 8.9
+maze_boundary_coordinate = 8.8
 #------------------------------------------------------------------------------
