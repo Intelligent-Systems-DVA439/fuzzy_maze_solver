@@ -71,7 +71,7 @@ def shutdown_function(node_array, executor_array):
     # Exit all forever while loops so threads can join
     shared_variables.shutdown_flag = True
 
-    time.sleep(1/10)
+    time.sleep(1/2)
 
     # Destroy all nodes explicitly
     for node in node_array:
@@ -81,7 +81,7 @@ def shutdown_function(node_array, executor_array):
     for executor in executor_array:
         executor.shutdown()
 
-    time.sleep(1/10)
+    time.sleep(1/2)
 
     # Shutdown and free all rclpy resources
     rclpy.shutdown()
