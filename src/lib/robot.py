@@ -80,19 +80,12 @@ def pathing_direction(fuzzy_angular, state_map, current_state):
 
         # Find which direction should be taken to get to best state next
         # Just changes the direction by doing sign change
-        # Clockwise (right) is negative, counter clockwise (left) is positive
-        # Continue right
-        if((best_edge.direction < 0) & (fuzzy_angular < 0)):
+        # Both agree, don't change direction
+        if(np.sign(best_edge.direction) == np.sign(fuzzy_angular)):
             direction = 1
-        # Turn left
-        elif((best_edge.direction > 0) & (fuzzy_angular < 0)):
+        # Change direction to oposite
+        else:
             direction = -1
-        # Turn right
-        elif((best_edge.direction < 0) & (fuzzy_angular > 0)):
-            direction = -1
-        # Continue left
-        elif((best_edge.direction > 0) & (fuzzy_angular > 0)):
-            direction = 1
 
         # Random exploration, chance is reduced the more the maze is explored
         # 1 run roughly increases the length of state_map by 1300
@@ -174,6 +167,15 @@ def robot_control(node_array, fuzzy_system, sensor, linear, angular):
         linear_value, angular_value, current_state = movement_choice(fuzzy_system, sensor, linear, angular, state_map, path_list, current_state)
         msg.linear.x = linear_value
         msg.angular.z = angular_value
+
+        # Movement is set to 0 if goal is reached to not influence beginning after reset
+        if((shared_variables.position.x > shared_variables.maze_boundary_coordinate) |
+           (shared_variables.position.x < -shared_variables.maze_boundary_coordinate) |
+           (shared_variables.position.y > shared_variables.maze_boundary_coordinate) |
+           (shared_variables.position.y < -shared_variables.maze_boundary_coordinate)):
+            msg.linear.x = 0
+            msg.angular.z = 0
+
         # Send message
         publisher.publish(msg)
 
