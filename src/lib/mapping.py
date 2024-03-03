@@ -45,7 +45,7 @@ class State:
 
 #==============================================================================
 # Update state values, using an algorihtm inspired by stochastic Q-learning monte carlo
-def update_state_value(state_map, path_list, alpha = 0.5, reward = 1, gamma = 1):
+def update_state_value(fuzzy_linear, state_map, path_list, alpha = 0.5, reward = 1, gamma = 1):
     # Update states in reverse order
     # Better since formula depends on best NEXT state, so going backwards results in faster convergance than going forwards
     for state in reversed(path_list):
@@ -61,8 +61,13 @@ def update_state_value(state_map, path_list, alpha = 0.5, reward = 1, gamma = 1)
                         best_successor = state_map[edge.end.tostring()].value
             else:
                 best_successor = 0
-            # Based on Q-learning monte carlo stochastic model
-            state.value = state.value + alpha * (reward + gamma * best_successor - state.value)
+            # If about to hit wall, set only current states reward to 500 times more (substantial penalty)
+            if((fuzzy_linear < 0) & (state == path_list[-1])):
+                # Based on Q-learning monte carlo stochastic model
+                state.value = state.value + alpha * (500*reward + gamma * best_successor - state.value)
+            else:
+                # Based on Q-learning monte carlo stochastic model
+                state.value = state.value + alpha * (reward + gamma * best_successor - state.value)
         # Goal state has value 0 (minimum)
         else:
             state.value = 0
@@ -97,9 +102,6 @@ def state_mapping(np_sensor_data, state_map, path_list, previous_state):
        (shared_variables.position.x < -shared_variables.maze_boundary_coordinate) |
        (shared_variables.position.y > shared_variables.maze_boundary_coordinate) |
        (shared_variables.position.y < -shared_variables.maze_boundary_coordinate)):
-        print(len(state_map))
-        print("\n first state added value:")
-        print(state_map[next(iter(state_map))].value)
         # Flush path list once goal is reached
         path_list = []
         goal = True
