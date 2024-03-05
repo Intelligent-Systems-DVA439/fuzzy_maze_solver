@@ -13,8 +13,11 @@
 
 #------------------------------------------------------------------------------
 # Base libraries
+import sys
+import argparse
 import threading
 import time
+import pickle
 
 # rclpy libraries
 import rclpy
@@ -29,7 +32,25 @@ from lib.fuzzy import create_fuzzy_system
 
 #==============================================================================
 # Main
-def main():
+def main(argv):
+    # Arg parser
+    parser = argparse.ArgumentParser(prog = "main.py", description = "Fuzzy + reinforcement learning maze solver with mapping")
+    parser.add_argument('-l', required = False, type = str, help = "Load a state_map from given file")
+    parser.add_argument('-s', required = False, default = "state_map.pickle", type = str, help = "Save state_map to given file")
+    args = parser.parse_args(argv)
+
+    # If no file is provided to load state_map from, create empty one
+    if(args.l == None):
+        state_map = {}
+    # Load state_map
+    else:
+        try:
+            with open(args.l, 'rb') as file:
+                state_map = pickle.load(file)
+            print(f"Successfully loaded state_map from {args.l}.")
+        except Exception as e:
+            print(f"Error saving data to {args.s}: {e}")
+
     # Initialize rclpy
     rclpy.init()
     # For destroying all nodes and executors, for a clean shutdown
@@ -57,7 +78,7 @@ def main():
     t4 = threading.Thread(target=shutdown_function, name='t4', args = (node_array, executor_array))
 
     # Create thread for controlling robot
-    t5 = threading.Thread(target=robot_control, name='t5', args = (node_array, fuzzy_system, sensor, linear, angular))
+    t5 = threading.Thread(target=robot_control, name='t5', args = (node_array, fuzzy_system, sensor, linear, angular, state_map))
 
     # Start threads
     t1.start()
@@ -74,11 +95,19 @@ def main():
     t4.join()
     t5.join()
 
+    # Save state_map
+    try:
+        with open(args.s, 'wb') as file:
+            pickle.dump(state_map, file)
+        print(f"state_map saved to {args.s} successfully.")
+    except Exception as e:
+        print(f"Error saving data to {args.s}: {e}")
+
     # Only returns on shutdown
     return None
 #==============================================================================
 
 #==============================================================================
 if __name__ == "__main__":
-    main()
+    main(sys.argv[1:])
 #==============================================================================
