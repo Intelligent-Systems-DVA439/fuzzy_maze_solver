@@ -146,7 +146,7 @@ def movement_choice(fuzzy_system, sensor, linear, angular, state_map, path_list,
 
 #==============================================================================
 # Controls turtlebot in gazebo
-def robot_control(node_array, fuzzy_system, sensor, linear, angular):
+def robot_control(node_array, fuzzy_system, sensor, linear, angular, state_map):
     # Create publisher node
     node = rclpy.create_node('movement_publisher')
     # Publish on command topic
@@ -158,7 +158,6 @@ def robot_control(node_array, fuzzy_system, sensor, linear, angular):
     msg = Twist()
 
     # Variables for global pathing and mapping
-    state_map = {}
     path_list = []
     current_state = np.full((362, 1), -1)
 
