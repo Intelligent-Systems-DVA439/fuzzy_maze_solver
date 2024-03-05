@@ -32,7 +32,9 @@ class Edge:
 #------------------------------------------------------------------------------
 # A class for the nodes (states) in the graph
 class State:
-    def __init__(self, value, goal):
+    def __init__(self, x, y, value, goal):
+        self.x = x
+        self.y = y
         self.value = value
         self.goal = goal
         self.edges = []
@@ -90,7 +92,7 @@ def state_mapping(np_sensor_data, state_map, path_list, previous_state):
 
     # Get current state
     # All sensor values, rounded to 2 decimals, and global position
-    current_state = np.concatenate((np.round(np_sensor_data, 2), shared_variables.position.x, shared_variables.position.y), axis=None)
+    current_state = np.concatenate((shared_variables.position.x, shared_variables.position.y, np.round(np_sensor_data, 2)), axis=None)
     # First time, use current_state as previous_state
     # After first time, previous state is provided as an argument and is the last loops current value (which is returned at the end)
     if(np.all(previous_state == -1)):
@@ -110,7 +112,7 @@ def state_mapping(np_sensor_data, state_map, path_list, previous_state):
 
     # If the new/current state is not in state map, create it and add it
     if current_state.tostring() not in state_map:
-        state_map[current_state.tostring()] = State(0, goal)
+        state_map[current_state.tostring()] = State(current_state[0], current_state[1], 0, goal)
         # Add edge from previous state to the new/current state
         if not np.array_equal(previous_state, current_state):
             # Add edge only if it does not already exist
