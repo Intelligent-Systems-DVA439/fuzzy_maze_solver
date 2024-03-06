@@ -17,13 +17,12 @@ import sys
 import argparse
 import threading
 import time
-import pickle
 
 # rclpy libraries
 import rclpy
 
 # Project libraries
-from lib.utility import reset_simulation, shutdown_function
+from lib.utility import visualize_state_map, load_state_map, save_state_map, reset_simulation, shutdown_function
 from lib.data_communication import get_sensor_readings, get_coordinates_velocity
 from lib.robot import robot_control, Range
 from lib.fuzzy import create_fuzzy_system
@@ -39,18 +38,8 @@ def main(argv):
     parser.add_argument('-s', required = False, default = "state_map.pickle", type = str, help = "Save state_map to given file")
     args = parser.parse_args(argv)
 
-    # If no file is provided to load state_map from, create empty one
-    if(args.l == None):
-        state_map = {}
-        print(f"No state_map loaded, created new empty one, {len(state_map)} number of states")
     # Load state_map
-    else:
-        try:
-            with open(args.l, 'rb') as file:
-                state_map = pickle.load(file)
-            print(f"Successfully loaded state_map from {args.l}, containing {len(state_map)} number of states")
-        except Exception as e:
-            print(f"Error saving data to {args.s}: {e}")
+    state_map = load_state_map(args.l)
 
     # Initialize rclpy
     rclpy.init()
@@ -97,12 +86,10 @@ def main(argv):
     t5.join()
 
     # Save state_map
-    try:
-        with open(args.s, 'wb') as file:
-            pickle.dump(state_map, file)
-        print(f"state_map saved to {args.s} successfully, containing {len(state_map)} number of states.")
-    except Exception as e:
-        print(f"Error saving data to {args.s}: {e}")
+    save_state_map(args.s)
+
+    # Show map
+    visualize_state_map(state_map)
 
     # Only returns on shutdown
     return None
