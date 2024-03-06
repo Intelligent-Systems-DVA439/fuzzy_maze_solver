@@ -34,11 +34,14 @@ def visualize_state_map(state_map):
     y = []
 
     # Add all x and y coordinates to arrays to easily scatter plot them
-    for state in state_map:
-        x.append(state.x)
-        y.append(state.y)
+    for key in state_map:
+        x.append(state_map[key].x)
+        y.append(state_map[key].y)
 
     plt.scatter(x, y)
+
+    plt.xlim(-shared_variables.maze_boundary_coordinate - 1, shared_variables.maze_boundary_coordinate + 1)
+    plt.ylim(-shared_variables.maze_boundary_coordinate - 1, shared_variables.maze_boundary_coordinate + 1)
 
     plt.xlabel('X-coordinate')
     plt.ylabel('Y-coordinate')
@@ -47,7 +50,7 @@ def visualize_state_map(state_map):
     plt.show()
 
     # Nothing to return
-    return None:
+    return None
 #==============================================================================
 # Load state_map from file or create empty state_map
 def load_state_map(load_file):
@@ -67,7 +70,7 @@ def load_state_map(load_file):
     return state_map
 #==============================================================================
 # Save state_map to file
-def save_state_map(save_file):
+def save_state_map(save_file, state_map):
     # Save state_map to save_file
     try:
         with open(save_file, 'wb') as file:
