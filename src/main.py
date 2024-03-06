@@ -86,7 +86,7 @@ def main(argv):
     t5.join()
 
     # Save state_map
-    save_state_map(args.s)
+    save_state_map(args.s, state_map)
 
     # Show map
     visualize_state_map(state_map)
