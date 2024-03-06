@@ -88,7 +88,7 @@ def pathing_direction(fuzzy_angular, state_map, current_state):
             direction = -1
 
         # Random exploration, chance is reduced the more the maze is explored
-        random_value = random.randint(0, 10000)
+        random_value = random.randint(0, 5000)
         if (len(state_map) < random_value):
             direction = -direction
 
