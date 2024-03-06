@@ -92,7 +92,8 @@ def state_mapping(np_sensor_data, state_map, path_list, previous_state):
 
     # Get current state
     # All sensor values, rounded to 2 decimals, and global position
-    current_state = np.concatenate((shared_variables.position.x, shared_variables.position.y, np.round(np_sensor_data, 2)), axis=None)
+    #current_state = np.concatenate((shared_variables.position.x, shared_variables.position.y, np.round(np_sensor_data, 2)), axis=None)
+    current_state = np.concatenate((shared_variables.position.x, shared_variables.position.y), axis=None)
     # First time, use current_state as previous_state
     # After first time, previous state is provided as an argument and is the last loops current value (which is returned at the end)
     if(np.all(previous_state == -1)):
