@@ -14,6 +14,8 @@
 
 # Base libraries
 import time
+import pickle
+import matplotlib.pyplot as plt
 
 # rclpy libraries
 import rclpy
@@ -25,6 +27,57 @@ from lib import shared_variables
 #------------------------------------------------------------------------------
 
 
+#==============================================================================
+# Plots all the states in state_map in a scatter plot
+def visualize_state_map(state_map):
+    x = []
+    y = []
+
+    # Add all x and y coordinates to arrays to easily scatter plot them
+    for state in state_map:
+        x.append(state.x)
+        y.append(state.y)
+
+    plt.scatter(x, y)
+
+    plt.xlabel('X-coordinate')
+    plt.ylabel('Y-coordinate')
+    plt.title('Plot of all states in state_map')
+
+    plt.show()
+
+    # Nothing to return
+    return None:
+#==============================================================================
+# Load state_map from file or create empty state_map
+def load_state_map(load_file):
+    # If no file is provided to load state_map from, create empty one
+    if(load_file == None):
+        state_map = {}
+        print(f"No state_map loaded, created new empty one, {len(state_map)} number of states")
+    # Load state_map
+    else:
+        try:
+            with open(load_file, 'rb') as file:
+                state_map = pickle.load(file)
+            print(f"Successfully loaded state_map from {load_file}, containing {len(state_map)} number of states")
+        except Exception as e:
+            print(f"Error loading state_map from {load_file}: {e}")
+
+    return state_map
+#==============================================================================
+# Save state_map to file
+def save_state_map(save_file):
+    # Save state_map to save_file
+    try:
+        with open(save_file, 'wb') as file:
+            pickle.dump(state_map, file)
+        print(f"state_map saved to {save_file} successfully, containing {len(state_map)} number of states.")
+    except Exception as e:
+        print(f"Error saving data to {save_file}: {e}")
+
+    # Nothing to return
+    return None
 #==============================================================================
 # Reset simulation
 def reset_simulation(node_array):
