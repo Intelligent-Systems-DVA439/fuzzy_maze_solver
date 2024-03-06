@@ -47,7 +47,7 @@ def main(argv):
         try:
             with open(args.l, 'rb') as file:
                 state_map = pickle.load(file)
-            print(f"Successfully loaded state_map from {args.l}.")
+            print(f"Successfully loaded state_map from {args.l}, containing {len(state_map)} number of states")
         except Exception as e:
             print(f"Error saving data to {args.s}: {e}")
 
@@ -99,7 +99,7 @@ def main(argv):
     try:
         with open(args.s, 'wb') as file:
             pickle.dump(state_map, file)
-        print(f"state_map saved to {args.s} successfully.")
+        print(f"state_map saved to {args.s} successfully, containing {len(state_map)} number of states.")
     except Exception as e:
         print(f"Error saving data to {args.s}: {e}")
 
