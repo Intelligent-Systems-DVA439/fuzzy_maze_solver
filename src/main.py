@@ -42,6 +42,7 @@ def main(argv):
     # If no file is provided to load state_map from, create empty one
     if(args.l == None):
         state_map = {}
+        print(f"No state_map loaded, created new empty one, {len(state_map)} number of states")
     # Load state_map
     else:
         try:
