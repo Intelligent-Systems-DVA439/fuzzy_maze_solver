@@ -117,9 +117,9 @@ def reset_simulation(node_array):
            (shared_variables.position.y > shared_variables.MAZE_BOUNDARY_COORDINATE) | 
            (shared_variables.position.y < -shared_variables.MAZE_BOUNDARY_COORDINATE)):
             print("Goal reached, reseting")
-            time.sleep(2)
+            time.sleep(5)
             reset_world.call_async(request)
-            time.sleep(2)
+            time.sleep(1/10)
 
     # Only returns on shutdown
     return None
@@ -133,7 +133,7 @@ def shutdown_function(node_array, executor_array):
         user_input = input()
         if((user_input.lower() == "q") | (user_input.lower() == "quit") | (user_input.lower() == "exit") | (user_input.lower() == "stop")):
             break
-        time.sleep(1/100)
+        time.sleep(1/5)
 
     # Exit all forever while loops so threads can join
     shared_variables.shutdown_flag = True
