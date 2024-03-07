@@ -101,12 +101,9 @@ def pathing_direction(fuzzy_angular, state_map, current_state):
 
 #==============================================================================
 # Global pathing and mapping
-def global_pathing(np_sensor_data, fuzzy_linear, fuzzy_angular, state_map, path_list, previous_state):
+def global_pathing(np_sensor_data, fuzzy_linear, fuzzy_angular, state_map, path_list, reward_list, previous_state):
     # Create current state and do mapping of the maze
-    current_state = state_mapping(np_sensor_data, state_map, path_list, previous_state)
-
-    # Update value of every state
-    update_state_value(fuzzy_linear, state_map, path_list)
+    current_state = state_mapping(np_sensor_data, fuzzy_linear, state_map, path_list, reward_list, previous_state)
 
     # Find which direction should be taken according to global pathing
     direction = pathing_direction(fuzzy_angular, state_map, current_state)
@@ -116,7 +113,7 @@ def global_pathing(np_sensor_data, fuzzy_linear, fuzzy_angular, state_map, path_
 
 #==============================================================================
 # Decide which movement should be taken
-def movement_choice(fuzzy_system, sensor, linear, angular, state_map, path_list, previous_state):
+def movement_choice(fuzzy_system, sensor, linear, angular, state_map, path_list, reward_list, previous_state):
     # Get sensor values (percept)
     np_sensor_data = np.array(shared_variables.raw_sensor_data)
 
@@ -132,7 +129,7 @@ def movement_choice(fuzzy_system, sensor, linear, angular, state_map, path_list,
     fuzzy_linear, fuzzy_angular = fuzzy_movement_choice(np_sensor_data, fuzzy_system, sensor, linear, angular)
 
     # Global path algorithm and mapping
-    previous_state, global_pathing_direction = global_pathing(np_sensor_data, fuzzy_linear, fuzzy_angular, state_map, path_list, previous_state)
+    previous_state, global_pathing_direction = global_pathing(np_sensor_data, fuzzy_linear, fuzzy_angular, state_map, path_list, reward_list, previous_state)
 
     # Final movement choice
     # Linear velocity
@@ -158,6 +155,7 @@ def robot_control(node_array, fuzzy_system, sensor, linear, angular, state_map):
 
     # Variables for global pathing and mapping
     path_list = []
+    reward_list = []
     previous_state = np.full((362, 1), -1)
 
     # Wait until position has a value (aka until the turtlebot position message has been received)
@@ -166,7 +164,7 @@ def robot_control(node_array, fuzzy_system, sensor, linear, angular, state_map):
 
     while(shared_variables.shutdown_flag != True):
         # Decide which linear and angular movement should be taken
-        linear_value, angular_value, previous_state = movement_choice(fuzzy_system, sensor, linear, angular, state_map, path_list, previous_state)
+        linear_value, angular_value, previous_state = movement_choice(fuzzy_system, sensor, linear, angular, state_map, path_list, reward_list, previous_state)
         msg.linear.x = linear_value
         msg.angular.z = angular_value
 
