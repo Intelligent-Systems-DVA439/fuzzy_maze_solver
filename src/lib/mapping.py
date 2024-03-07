@@ -79,14 +79,16 @@ def update_state_value(fuzzy_linear, state_map, path_list, alpha = 0.5, reward =
 #==============================================================================
 
 #==============================================================================
-# Creates a map using states (sensor values and global position)
-# state_map is a hash_map. previous_state and current_state are np arrays
-# goal is a bool for if we are in goal state
+# Creates a map using states
 def state_mapping(np_sensor_data, state_map, path_list, previous_state):
     # NOTE! np array can not be used as a hash key, hence converting it to string
 
     # Wait until velocity has a value (aka until the turtlebot velocity message has been received)
     while(shared_variables.velocity == None):
+        pass
+
+    # Wait until position has a value (aka until the turtlebot position message has been received)
+    while(shared_variables.position == None):
         pass
 
 
@@ -99,10 +101,10 @@ def state_mapping(np_sensor_data, state_map, path_list, previous_state):
 
 
     # If goal is reached, set State to goal state and flush path list
-    if((shared_variables.position.x > shared_variables.maze_boundary_coordinate) |
-       (shared_variables.position.x < -shared_variables.maze_boundary_coordinate) |
-       (shared_variables.position.y > shared_variables.maze_boundary_coordinate) |
-       (shared_variables.position.y < -shared_variables.maze_boundary_coordinate)):
+    if((shared_variables.position.x > shared_variables.MAZE_BOUNDARY_COORDINATE) |
+       (shared_variables.position.x < -shared_variables.MAZE_BOUNDARY_COORDINATE) |
+       (shared_variables.position.y > shared_variables.MAZE_BOUNDARY_COORDINATE) |
+       (shared_variables.position.y < -shared_variables.MAZE_BOUNDARY_COORDINATE)):
         # Flush path list once goal is reached
         path_list = []
         goal = True
@@ -112,7 +114,7 @@ def state_mapping(np_sensor_data, state_map, path_list, previous_state):
     # If the new/current state is not in state map, create it and add it
     if current_state.tostring() not in state_map:
         state_map[current_state.tostring()] = State(current_state[0], current_state[1], 0, goal)
-        # Add edge from previous state to the new/current state
+        # Add edge from previous state to the new/current state, unless they are the same state
         if not np.array_equal(previous_state, current_state):
             # Add edge only if it does not already exist
             if Edge(previous_state, current_state, shared_variables.velocity.angular.z) not in state_map[previous_state.tostring()].edges:
