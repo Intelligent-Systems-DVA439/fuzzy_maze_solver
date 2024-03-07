@@ -114,11 +114,15 @@ def state_mapping(np_sensor_data, state_map, path_list, previous_state):
     # If the new/current state is not in state map, create it and add it
     if current_state.tostring() not in state_map:
         state_map[current_state.tostring()] = State(current_state[0], current_state[1], 0, goal)
+
+    # Unless goal state (goal state shouldn't have edges going from it)
+    if not state_map[previous_state.tostring()].goal:
         # Add edge from previous state to the new/current state, unless they are the same state
         if not np.array_equal(previous_state, current_state):
             # Add edge only if it does not already exist
-            if Edge(previous_state, current_state, shared_variables.velocity.angular.z) not in state_map[previous_state.tostring()].edges:
-                state_map[previous_state.tostring()].add_edge(Edge(previous_state, current_state, shared_variables.velocity.angular.z))
+            e = Edge(previous_state, current_state, shared_variables.velocity.angular.z)
+            if e not in state_map[previous_state.tostring()].edges:
+                state_map[previous_state.tostring()].add_edge(e)
 
     # Append current state to path/traversal list
     path_list.append(state_map[current_state.tostring()])
