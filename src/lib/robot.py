@@ -1,7 +1,7 @@
 # robot.py
 #==============================================================================
 # Author: Carl Larsson
-# Description: functions related to the robot
+# Description: functions related to robot control
 # Date: 15-02-2024
 
 # This software is licensed under the MIT License
@@ -132,7 +132,7 @@ def movement_choice(fuzzy_system, sensor, linear, angular, state_map, path_list,
     fuzzy_linear, fuzzy_angular = fuzzy_movement_choice(np_sensor_data, fuzzy_system, sensor, linear, angular)
 
     # Global path algorithm and mapping
-    current_state, global_pathing_direction = global_pathing(np_sensor_data, fuzzy_linear, fuzzy_angular, state_map, path_list, previous_state)
+    previous_state, global_pathing_direction = global_pathing(np_sensor_data, fuzzy_linear, fuzzy_angular, state_map, path_list, previous_state)
 
     # Final movement choice
     # Linear velocity
@@ -140,7 +140,7 @@ def movement_choice(fuzzy_system, sensor, linear, angular, state_map, path_list,
     # Turning is based on fuzzy, with input (sign change) from global path on where to turn
     angular_value = global_pathing_direction*fuzzy_angular
 
-    return linear_value, angular_value, current_state
+    return linear_value, angular_value, previous_state
 #==============================================================================
 
 #==============================================================================
@@ -148,8 +148,8 @@ def movement_choice(fuzzy_system, sensor, linear, angular, state_map, path_list,
 def robot_control(node_array, fuzzy_system, sensor, linear, angular, state_map):
     # Create publisher node
     node = rclpy.create_node('movement_publisher')
-    # Publish on command topic
-    publisher = node.create_publisher(Twist, '/cmd_vel', 10)
+    # Publish on command topic (buffer size 1 since old commands should not be executed)
+    publisher = node.create_publisher(Twist, '/cmd_vel', 1)
     # Add node to node array for shutdown
     node_array.append(node)
 
@@ -158,7 +158,7 @@ def robot_control(node_array, fuzzy_system, sensor, linear, angular, state_map):
 
     # Variables for global pathing and mapping
     path_list = []
-    current_state = np.full((362, 1), -1)
+    previous_state = np.full((362, 1), -1)
 
     # Wait until position has a value (aka until the turtlebot position message has been received)
     while(shared_variables.position == None):
@@ -166,7 +166,7 @@ def robot_control(node_array, fuzzy_system, sensor, linear, angular, state_map):
 
     while(shared_variables.shutdown_flag != True):
         # Decide which linear and angular movement should be taken
-        linear_value, angular_value, current_state = movement_choice(fuzzy_system, sensor, linear, angular, state_map, path_list, current_state)
+        linear_value, angular_value, previous_state = movement_choice(fuzzy_system, sensor, linear, angular, state_map, path_list, previous_state)
         msg.linear.x = linear_value
         msg.angular.z = angular_value
 
