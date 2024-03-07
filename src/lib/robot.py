@@ -88,7 +88,7 @@ def pathing_direction(fuzzy_angular, state_map, current_state):
             direction = -1
 
         # Random exploration, chance is reduced the more the maze is explored
-        random_value = random.randint(0, 5000)
+        random_value = random.randint(0, 10000)
         if (len(state_map) < random_value):
             direction = -direction
 
@@ -160,6 +160,10 @@ def robot_control(node_array, fuzzy_system, sensor, linear, angular, state_map):
     path_list = []
     current_state = np.full((362, 1), -1)
 
+    # Wait until position has a value (aka until the turtlebot position message has been received)
+    while(shared_variables.position == None):
+        pass
+
     while(shared_variables.shutdown_flag != True):
         # Decide which linear and angular movement should be taken
         linear_value, angular_value, current_state = movement_choice(fuzzy_system, sensor, linear, angular, state_map, path_list, current_state)
@@ -167,10 +171,10 @@ def robot_control(node_array, fuzzy_system, sensor, linear, angular, state_map):
         msg.angular.z = angular_value
 
         # Movement is set to 0 if goal is reached to not influence beginning after reset
-        if((shared_variables.position.x > shared_variables.maze_boundary_coordinate) |
-           (shared_variables.position.x < -shared_variables.maze_boundary_coordinate) |
-           (shared_variables.position.y > shared_variables.maze_boundary_coordinate) |
-           (shared_variables.position.y < -shared_variables.maze_boundary_coordinate)):
+        if((shared_variables.position.x > shared_variables.MAZE_BOUNDARY_COORDINATE) |
+           (shared_variables.position.x < -shared_variables.MAZE_BOUNDARY_COORDINATE) |
+           (shared_variables.position.y > shared_variables.MAZE_BOUNDARY_COORDINATE) |
+           (shared_variables.position.y < -shared_variables.MAZE_BOUNDARY_COORDINATE)):
             msg.linear.x = 0.0
             msg.angular.z = 0.0
 
