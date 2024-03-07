@@ -47,32 +47,28 @@ class State:
 
 #==============================================================================
 # Update state values, using an algorihtm inspired by stochastic Q-learning monte carlo
-def update_state_value(fuzzy_linear, state_map, path_list, alpha = 0.5, reward = 1, gamma = 1):
+def update_state_value(state_map, path_list, reward_list, alpha = 0.5, gamma = 1):
     # Update states in reverse order
     # Better since formula depends on best NEXT state, so going backwards results in faster convergance than going forwards
-    for state in reversed(path_list):
+    for idx in range(len(path_list) - 1, -1, -1):
         # Unless goal state
-        if not state.goal:
+        if not path_list[idx].goal:
             # Has neighbors
-            if state.edges:
+            if path_list[idx].edges:
                 # First neighbor is best successor in the beginning
-                best_successor = state_map[state.edges[0].end.tostring()].value
-                for edge in state.edges:
+                best_successor = state_map[path_list[idx].edges[0].end.tostring()].value
+                for edge in path_list[idx].edges:
                     # Shortest path is minimization problem
                     if (state_map[edge.end.tostring()].value < best_successor):
                         best_successor = state_map[edge.end.tostring()].value
+            # Only goal state should be without neighbors. This state must thus be some dangerous outlier or error, avoid it
             else:
-                best_successor = 0
-            # If about to hit wall, set only current states reward to 500 times more (substantial penalty)
-            if((fuzzy_linear < 0) & (state == path_list[-1])):
-                # Based on Q-learning monte carlo stochastic model
-                state.value = state.value + alpha * (500*reward + gamma * best_successor - state.value)
-            else:
-                # Based on Q-learning monte carlo stochastic model
-                state.value = state.value + alpha * (reward + gamma * best_successor - state.value)
+                best_successor = 2000
+            # Based on Q-learning monte carlo stochastic model
+            path_list[idx].value = path_list[idx].value + alpha * (reward_list[idx] + gamma * best_successor - path_list[idx].value)
         # Goal state has value 0 (minimum)
         else:
-            state.value = 0
+            path_list[idx].value = 0
 
     # Nothing to return
     return None
@@ -80,7 +76,7 @@ def update_state_value(fuzzy_linear, state_map, path_list, alpha = 0.5, reward =
 
 #==============================================================================
 # Creates a map using states
-def state_mapping(np_sensor_data, state_map, path_list, previous_state):
+def state_mapping(np_sensor_data, fuzzy_linear, state_map, path_list, reward_list, previous_state):
     # NOTE! np array can not be used as a hash key, hence converting it to string
 
     # Wait until velocity has a value (aka until the turtlebot velocity message has been received)
@@ -105,8 +101,13 @@ def state_mapping(np_sensor_data, state_map, path_list, previous_state):
        (shared_variables.position.x < -shared_variables.MAZE_BOUNDARY_COORDINATE) |
        (shared_variables.position.y > shared_variables.MAZE_BOUNDARY_COORDINATE) |
        (shared_variables.position.y < -shared_variables.MAZE_BOUNDARY_COORDINATE)):
+        # Update value of every state
+        update_state_value(state_map, path_list, reward_list)
+
         # Flush path list once goal is reached
-        path_list = []
+        path_list.clear()
+        # Flush reward list once goal is reached
+        reward_list.clear()
         goal = True
     else:
         goal = False
@@ -126,6 +127,15 @@ def state_mapping(np_sensor_data, state_map, path_list, previous_state):
 
     # Append current state to path/traversal list
     path_list.append(state_map[current_state.tostring()])
+
+    # If about to hit wall, set only current states reward to 500 times more (substantial penalty)
+    if(fuzzy_linear <= 0):
+        reward_list.append(2000)
+    else:
+        reward_list.append(0)
+    # Increment reward for all by 1 each time step (to emphasize finding shortest path)
+    for i in range(len(reward_list)):
+        reward_list[i] += 1
 
     return current_state
 #==============================================================================
