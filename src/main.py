@@ -3,7 +3,7 @@
 # main.py
 #==============================================================================
 # Author: Carl Larsson
-# Description: AI maze solver
+# Description: Fuzzy + reinforcement learning maze solver and graph mapping
 # Date: 16-01-2024
 
 # This software is licensed under the MIT License
@@ -33,7 +33,7 @@ from lib.fuzzy import create_fuzzy_system
 # Main
 def main(argv):
     # Arg parser
-    parser = argparse.ArgumentParser(prog = "main.py", description = "Fuzzy + reinforcement learning maze solver with mapping")
+    parser = argparse.ArgumentParser(prog = "main.py", description = "Fuzzy + reinforcement learning maze solver and graph mapping")
     parser.add_argument('-l', required = False, type = str, help = "Load a state_map from given file")
     parser.add_argument('-s', required = False, default = "state_map.pickle", type = str, help = "Save state_map to given file")
     args = parser.parse_args(argv)
@@ -62,7 +62,7 @@ def main(argv):
 
     # Utility threads
     # Thread for reseting once goal is reached
-    # Threading requires the args to be sent as a tuple, hence the (arg1,) despite only sending 1 arg
+    # Threading requires the args to be sent as a tuple, hence the (arg1,) despite only sending 1 argument
     t3 = threading.Thread(target=reset_simulation, name='t3', args = (node_array,))
     # Thread for listening to keyboard input, once q, quit or exit is entered, initiates shutdown
     t4 = threading.Thread(target=shutdown_function, name='t4', args = (node_array, executor_array))
