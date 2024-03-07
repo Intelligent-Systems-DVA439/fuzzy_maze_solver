@@ -35,8 +35,8 @@ def get_sensor_readings(node_array, executor_array):
         # Store data in a global array
         shared_variables.raw_sensor_data = msg.ranges
 
-    # Subscribe to the topic for the lidar/LaserScan
-    subscription = node.create_subscription(LaserScan, '/scan', sensor_callback, 10)
+    # Subscribe to the topic for the lidar/LaserScan, only use latest value (buffer size = 1)
+    subscription = node.create_subscription(LaserScan, '/scan', sensor_callback, 1)
     subscription  # prevent unused variable warning
     # Add node to node array for shutdown
     node_array.append(node)
@@ -66,8 +66,8 @@ def get_coordinates_velocity(node_array, executor_array):
         shared_variables.position = msg.pose.pose.position
         shared_variables.velocity = msg.twist.twist
 
-    # Subscribe to the topic for the turtlebot coordinates and velocity
-    subscription = node.create_subscription(Odometry, 'odom', coordinates_velocity_callback, 10)
+    # Subscribe to the topic for the turtlebot coordinates and velocity, only use latest value (buffer size = 1)
+    subscription = node.create_subscription(Odometry, 'odom', coordinates_velocity_callback, 1)
     subscription  # prevent unused variable warning
     # Add node to node array for shutdown
     node_array.append(node)
