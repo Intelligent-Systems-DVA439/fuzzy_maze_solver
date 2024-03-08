@@ -31,6 +31,7 @@ from lib import shared_variables
 #==============================================================================
 # Plots all the states in state_map in a scatter plot
 def visualize_state_map(state_map):
+    # Store all state coordinates and values in arrays for easy plotting
     x = []
     y = []
     value = []
@@ -42,16 +43,18 @@ def visualize_state_map(state_map):
         value.append(state_map[key].value)
 
     # Set clipping on colormap so extreme outliers doesn't ruin it
-    vmin = np.min(np.array(value))
+    vmin = 1*np.min(np.array(value))
     vmax = 1*np.average(np.array(value))
 
+    # Plot and colormap
     plt.scatter(x, y, c = value, cmap = 'magma', vmin=vmin, vmax=vmax)
-
     plt.colorbar(label='State value')
 
+    # Set axis
     plt.xlim(-shared_variables.MAZE_BOUNDARY_COORDINATE - 1, shared_variables.MAZE_BOUNDARY_COORDINATE + 1)
     plt.ylim(-shared_variables.MAZE_BOUNDARY_COORDINATE - 1, shared_variables.MAZE_BOUNDARY_COORDINATE + 1)
 
+    # Labels and title
     plt.xlabel('X-coordinate')
     plt.ylabel('Y-coordinate')
     plt.title('Plot of all states in state_map, with color based on state value (low value good)')
@@ -62,6 +65,8 @@ def visualize_state_map(state_map):
 
     # Nothing to return
     return None
+#==============================================================================
+
 #==============================================================================
 # Load state_map from file or create empty state_map
 def load_state_map(load_file):
@@ -80,6 +85,8 @@ def load_state_map(load_file):
 
     return state_map
 #==============================================================================
+
+#==============================================================================
 # Save state_map to file
 def save_state_map(save_file, state_map):
     # Save state_map to save_file
@@ -92,6 +99,8 @@ def save_state_map(save_file, state_map):
 
     # Nothing to return
     return None
+#==============================================================================
+
 #==============================================================================
 # Reset simulation
 def reset_simulation(node_array):
@@ -109,17 +118,23 @@ def reset_simulation(node_array):
     while(shared_variables.position == None):
         pass
 
-    # Continously check if turtlebot has made it out of the maze
     while(shared_variables.shutdown_flag == False):
-        # Reset simulation once goal is reached
+        # Reset simulation once goal is reached or reset has been requested
         if((shared_variables.position.x > shared_variables.MAZE_BOUNDARY_COORDINATE) | 
            (shared_variables.position.x < -shared_variables.MAZE_BOUNDARY_COORDINATE) | 
            (shared_variables.position.y > shared_variables.MAZE_BOUNDARY_COORDINATE) | 
-           (shared_variables.position.y < -shared_variables.MAZE_BOUNDARY_COORDINATE)):
-            print("Goal reached, reseting")
+           (shared_variables.position.y < -shared_variables.MAZE_BOUNDARY_COORDINATE) |
+           (shared_variables.reset_request == True)):
+
+            if(shared_variables.reset_request == True):
+                print("Reset request received, reseting")
+            else:
+                print("Goal reached, reseting")
+
             time.sleep(5)
             reset_world.call_async(request)
             time.sleep(1/10)
+            shared_variables.reset_request = False
 
     # Only returns on shutdown
     return None
