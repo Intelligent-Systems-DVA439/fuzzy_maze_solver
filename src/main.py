@@ -46,10 +46,6 @@ def main(argv):
     # For destroying all nodes and executors, for a clean shutdown
     node_array = []
     executor_array = []
-    # For normalization
-    sensor = Range(0, 3.51)
-    linear = Range(-0.26, 0.26)
-    angular = Range(-1.82, 1.82)
 
     # Create fuzzy control system
     fuzzy_system = create_fuzzy_system('centroid', 0)
@@ -61,14 +57,14 @@ def main(argv):
     t2 = threading.Thread(target=get_coordinates_velocity, name='t2', args = (node_array, executor_array))
 
     # Utility threads
-    # Thread for reseting once goal is reached
+    # Thread for reseting simulation
     # Threading requires the args to be sent as a tuple, hence the (arg1,) despite only sending 1 argument
     t3 = threading.Thread(target=reset_simulation, name='t3', args = (node_array,))
-    # Thread for listening to keyboard input, once q, quit or exit is entered, initiates shutdown
+    # Thread for listening to keyboard input, once q, quit, exit or stop is entered, initiates shutdown
     t4 = threading.Thread(target=shutdown_function, name='t4', args = (node_array, executor_array))
 
     # Create thread for controlling robot
-    t5 = threading.Thread(target=robot_control, name='t5', args = (node_array, fuzzy_system, sensor, linear, angular, state_map))
+    t5 = threading.Thread(target=robot_control, name='t5', args = (node_array, fuzzy_system, state_map))
 
     # Start threads
     t1.start()
