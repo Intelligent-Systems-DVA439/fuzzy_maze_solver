@@ -76,7 +76,7 @@ def exploration_function(state_map, current_state, direction, magnitude):
 
     # Inverse logarithmic growth probability based on number of edges/neighbors
     def neighbor_probability(x, upper_limit):
-        # If more than 8 edges, 0% chance
+        # If more than upper_limit number of edges, 0% chance
         if x >= upper_limit:
             return 0.01
         # Log(x) when x<1 is over 1 (which would mean more than 100%)
@@ -112,14 +112,29 @@ def exploration_function(state_map, current_state, direction, magnitude):
 def pathing_direction(fuzzy_angular, state_map, current_state):
     # NOTE! np array can not be used as a hash key, hence converting it to string
 
+    best_edge = None
+
     # Check if current state has any neighbors (is not empty)
     if state_map[current_state.tostring()].edges:
-        # To begin with, the best state is just the first neighbor
-        best_edge = state_map[current_state.tostring()].edges[0]
+        # Start by checking for an edge which does not have value 0 (unless goal state), because it has just not had its value updated then, and should thus not be considered
         for edge in state_map[current_state.tostring()].edges:
-            # Shortest path is minimization problem, thus lower value is better
-            if(state_map[edge.end.tostring()].value < state_map[best_edge.end.tostring()].value):
+            if((state_map[edge.end.tostring()].value == 0) & (state_map[edge.end.tostring()].goal != True)):
+                pass
+            # Found a valid neighbor, break and continue
+            else:
                 best_edge = edge
+                break
+        # Current state does not have any valid neighbors, global pathing can not help and thus gives no input
+        if(best_edge == None):
+            return 1
+        else:
+            # Check through all neighbors for best one
+            for edge in state_map[current_state.tostring()].edges:
+                # make sure edge does not have value 0 (unless goal state), because it has just not had its value updated then, and should thus not be considered
+                if((state_map[edge.end.tostring()].value == 0) & (state_map[edge.end.tostring()].goal != True)):
+                    # Shortest path is minimization problem, thus lower value is better
+                    if(state_map[edge.end.tostring()].value < state_map[best_edge.end.tostring()].value):
+                        best_edge = edge
 
         # Find which direction should be taken to get to best state next
         # Both agree, don't change direction
@@ -137,8 +152,7 @@ def pathing_direction(fuzzy_angular, state_map, current_state):
 
     # No neighbors, then global pathing can't help and it gives no input
     else:
-        direction = 1
-        magnitude = 1
+        return 1
 
     return direction*magnitude
 #==============================================================================
