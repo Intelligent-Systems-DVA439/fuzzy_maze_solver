@@ -12,7 +12,7 @@
 #------------------------------------------------------------------------------
 # Libraries
 
-# Functional libraries
+# Base Libraries
 import numpy as np
 
 # Project libraries
@@ -63,7 +63,7 @@ def update_state_value(state_map, path_list, reward_list, alpha = 0.5, gamma = 1
                         best_successor = state_map[edge.end.tostring()].value
             # Only goal state should be without neighbors. This state must thus be some dangerous outlier or error, avoid it
             else:
-                best_successor = 2000
+                best_successor = 10000
             # Based on Q-learning monte carlo stochastic model
             path_list[idx].value = path_list[idx].value + alpha * (reward_list[idx] + gamma * best_successor - path_list[idx].value)
         # Goal state has value 0 (minimum)
@@ -76,7 +76,7 @@ def update_state_value(state_map, path_list, reward_list, alpha = 0.5, gamma = 1
 
 #==============================================================================
 # Creates a map using states
-def state_mapping(np_sensor_data, fuzzy_linear, state_map, path_list, reward_list, previous_state):
+def state_mapping(fuzzy_linear, state_map, path_list, reward_list, previous_state):
     # NOTE! np array can not be used as a hash key, hence converting it to string
 
     # Wait until velocity has a value (aka until the turtlebot velocity message has been received)
@@ -95,8 +95,41 @@ def state_mapping(np_sensor_data, fuzzy_linear, state_map, path_list, reward_lis
     if(np.all(previous_state == -1)):
         previous_state = current_state
 
+    # If the new/current state is not in state map, create it and add it
+    if current_state.tostring() not in state_map:
+        # If outside maze, then it's goal position
+        if((shared_variables.position.x > shared_variables.MAZE_BOUNDARY_COORDINATE) |
+           (shared_variables.position.x < -shared_variables.MAZE_BOUNDARY_COORDINATE) |
+           (shared_variables.position.y > shared_variables.MAZE_BOUNDARY_COORDINATE) |
+           (shared_variables.position.y < -shared_variables.MAZE_BOUNDARY_COORDINATE)):
+            goal = True
+        else:
+            goal = False
+        state_map[current_state.tostring()] = State(current_state[0], current_state[1], 0, goal)
 
-    # If goal is reached, set State to goal state and flush path list
+    # Unless goal state (goal state shouldn't have edges going from it)
+    if not state_map[previous_state.tostring()].goal:
+        # Add edge from previous state to the new/current state, unless they are the same state
+        if not np.array_equal(previous_state, current_state):
+            # Add edge only if it does not already exist
+            temp_edge = Edge(previous_state, current_state, shared_variables.velocity.angular.z)
+            if temp_edge not in state_map[previous_state.tostring()].edges:
+                state_map[previous_state.tostring()].add_edge(temp_edge)
+
+    # Append current state to path/traversal list
+    path_list.append(state_map[current_state.tostring()])
+
+    # If about to hit wall, set only current states reward to 10 (penalty)
+    if(fuzzy_linear <= 0):
+        reward_list.append(10)
+    else:
+        reward_list.append(0)
+    # Increment reward for all by 1 each time step (to emphasize finding shortest path)
+    for i in range(len(reward_list)):
+        reward_list[i] += 1
+
+
+    # If we are in goal state, update value of all states, flush path and reward list after
     if((shared_variables.position.x > shared_variables.MAZE_BOUNDARY_COORDINATE) |
        (shared_variables.position.x < -shared_variables.MAZE_BOUNDARY_COORDINATE) |
        (shared_variables.position.y > shared_variables.MAZE_BOUNDARY_COORDINATE) |
@@ -108,34 +141,7 @@ def state_mapping(np_sensor_data, fuzzy_linear, state_map, path_list, reward_lis
         path_list.clear()
         # Flush reward list once goal is reached
         reward_list.clear()
-        goal = True
-    else:
-        goal = False
 
-    # If the new/current state is not in state map, create it and add it
-    if current_state.tostring() not in state_map:
-        state_map[current_state.tostring()] = State(current_state[0], current_state[1], 0, goal)
-
-    # Unless goal state (goal state shouldn't have edges going from it)
-    if not state_map[previous_state.tostring()].goal:
-        # Add edge from previous state to the new/current state, unless they are the same state
-        if not np.array_equal(previous_state, current_state):
-            # Add edge only if it does not already exist
-            e = Edge(previous_state, current_state, shared_variables.velocity.angular.z)
-            if e not in state_map[previous_state.tostring()].edges:
-                state_map[previous_state.tostring()].add_edge(e)
-
-    # Append current state to path/traversal list
-    path_list.append(state_map[current_state.tostring()])
-
-    # If about to hit wall, set only current states reward to 500 times more (substantial penalty)
-    if(fuzzy_linear <= 0):
-        reward_list.append(2000)
-    else:
-        reward_list.append(0)
-    # Increment reward for all by 1 each time step (to emphasize finding shortest path)
-    for i in range(len(reward_list)):
-        reward_list[i] += 1
 
     return current_state
 #==============================================================================
