@@ -24,7 +24,7 @@ import rclpy
 # Project libraries
 from lib.utility import visualize_state_map, load_state_map, save_state_map, reset_simulation, shutdown_function
 from lib.data_communication import get_sensor_readings, get_coordinates_velocity
-from lib.robot import robot_control, Range
+from lib.robot import robot_control
 from lib.fuzzy import create_fuzzy_system
 #------------------------------------------------------------------------------
 
