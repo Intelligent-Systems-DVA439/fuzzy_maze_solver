@@ -20,6 +20,8 @@ velocity = None
 raw_sensor_data = [-1 for x in range(360)]
 # Shutdown flag
 shutdown_flag = False
+# Request to reset simulation
+reset_request = False
 # Maze boundry coordinates (assumes maze is centered and square)
 MAZE_BOUNDARY_COORDINATE = 8.8
 #------------------------------------------------------------------------------
