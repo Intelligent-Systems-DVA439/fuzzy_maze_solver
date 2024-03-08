@@ -15,6 +15,7 @@
 # Base libraries
 import math
 import random
+import time
 
 # Functional libraries
 import numpy as np
@@ -43,7 +44,12 @@ class Range:
 
 #==============================================================================
 # Fuzzy movement choice
-def fuzzy_movement_choice(np_sensor_data, fuzzy_system, sensor, linear, angular):
+def fuzzy_movement_choice(np_sensor_data, fuzzy_system):
+    # For normalization and unnormalization
+    sensor = Range(0, 3.51)
+    linear = Range(-0.26, 0.26)
+    angular = Range(-1.82, 1.82)
+
     # Provide normalized sensor values to fuzzy system
     # Lidar values go counter clockwise and start infront of the robot
     # Left value is mean value of a 70 degree cone to the left
@@ -65,6 +71,43 @@ def fuzzy_movement_choice(np_sensor_data, fuzzy_system, sensor, linear, angular)
 #==============================================================================
 
 #==============================================================================
+# Exploration function deciding if random exploration action should be taken
+def exploration_function(state_map, current_state, direction, magnitude):
+
+    # Inverse logarithmic growth probability based on number of edges/neighbors
+    def neighbor_probability(x, upper_limit):
+        # If more than 8 edges, 0% chance
+        if x >= upper_limit:
+            return 0.01
+        # Log(x) when x<1 is over 1 (which would mean more than 100%)
+        elif x <= 1:
+            return 0.7
+        # In between chance is based on inverse logarithmic growth
+        else:
+            # Calculate probability using inverse logarithmic growth function
+            probability = 1 - math.log(x) / math.log(upper_limit)  # Logarithmic growth from 100% to 0%
+            return probability
+
+
+    # Calculate chance based on number or edges of current state, 0 edges 100% chance and then dropping off to 0% in a inverse logarithmic growth curve
+    neighbor_chance = neighbor_probability(len(state_map[current_state.tostring()].edges), 6)
+
+    # Chance to take random direction
+    if(random.random() < neighbor_chance):
+        random_direction = -direction
+    else:
+        random_direction = direction
+
+    # Chance to make the magnitude of the direction random
+    if(random.random() < neighbor_chance):
+        random_magnitude = random.random()
+    else:
+        random_magnitude = magnitude
+        
+    return random_direction, random_magnitude
+#==============================================================================
+
+#==============================================================================
 # Decides which direction to go according to global pathing
 def pathing_direction(fuzzy_angular, state_map, current_state):
     # NOTE! np array can not be used as a hash key, hence converting it to string
@@ -79,7 +122,6 @@ def pathing_direction(fuzzy_angular, state_map, current_state):
                 best_edge = edge
 
         # Find which direction should be taken to get to best state next
-        # Just changes the direction by doing sign change
         # Both agree, don't change direction
         if(np.sign(best_edge.direction) == np.sign(fuzzy_angular)):
             direction = 1
@@ -87,23 +129,25 @@ def pathing_direction(fuzzy_angular, state_map, current_state):
         else:
             direction = -1
 
-        # Random exploration, chance is reduced the more the maze is explored
-        random_value = random.randint(0, 10000)
-        if (len(state_map) < random_value):
-            direction = -direction
+        # Decide on angular magnitude
+        magnitude = abs(fuzzy_angular)/abs(best_edge.direction)
+
+        # Random exploration, chance is based on number of edges and number of new states/edges dicovered last epoch
+        direction, magnitude = exploration_function(state_map, current_state, direction, magnitude)
 
     # No neighbors, then global pathing can't help and it gives no input
     else:
         direction = 1
+        magnitude = 1
 
-    return direction
+    return direction*magnitude
 #==============================================================================
 
 #==============================================================================
 # Global pathing and mapping
-def global_pathing(np_sensor_data, fuzzy_linear, fuzzy_angular, state_map, path_list, reward_list, previous_state):
+def global_pathing(fuzzy_linear, fuzzy_angular, state_map, path_list, reward_list, previous_state):
     # Create current state and do mapping of the maze
-    current_state = state_mapping(np_sensor_data, fuzzy_linear, state_map, path_list, reward_list, previous_state)
+    current_state = state_mapping(fuzzy_linear, state_map, path_list, reward_list, previous_state)
 
     # Find which direction should be taken according to global pathing
     direction = pathing_direction(fuzzy_angular, state_map, current_state)
@@ -113,7 +157,7 @@ def global_pathing(np_sensor_data, fuzzy_linear, fuzzy_angular, state_map, path_
 
 #==============================================================================
 # Decide which movement should be taken
-def movement_choice(fuzzy_system, sensor, linear, angular, state_map, path_list, reward_list, previous_state):
+def movement_choice(fuzzy_system, state_map, path_list, reward_list, previous_state, start_time):
     # Get sensor values (percept)
     np_sensor_data = np.array(shared_variables.raw_sensor_data)
 
@@ -126,23 +170,28 @@ def movement_choice(fuzzy_system, sensor, linear, angular, state_map, path_list,
 
 
     # Fuzzy
-    fuzzy_linear, fuzzy_angular = fuzzy_movement_choice(np_sensor_data, fuzzy_system, sensor, linear, angular)
+    fuzzy_linear, fuzzy_angular = fuzzy_movement_choice(np_sensor_data, fuzzy_system)
 
     # Global path algorithm and mapping
-    previous_state, global_pathing_direction = global_pathing(np_sensor_data, fuzzy_linear, fuzzy_angular, state_map, path_list, reward_list, previous_state)
+    previous_state, global_pathing_direction = global_pathing(fuzzy_linear, fuzzy_angular, state_map, path_list, reward_list, previous_state)
 
     # Final movement choice
     # Linear velocity
     linear_value = fuzzy_linear
-    # Turning is based on fuzzy, with input (sign change) from global path on where to turn
-    angular_value = global_pathing_direction*fuzzy_angular
+    # Unless its taken 30min
+    if((time.time() - start_time) < 1800):
+        # Turning is based on fuzzy, with input from global path on where to turn
+        angular_value = global_pathing_direction*fuzzy_angular
+    else:
+        # Turning only based on fuzzy
+        angular_value = fuzzy_angular
 
     return linear_value, angular_value, previous_state
 #==============================================================================
 
 #==============================================================================
 # Controls turtlebot in gazebo
-def robot_control(node_array, fuzzy_system, sensor, linear, angular, state_map):
+def robot_control(node_array, fuzzy_system, state_map):
     # Create publisher node
     node = rclpy.create_node('movement_publisher')
     # Publish on command topic (buffer size 1 since old commands should not be executed)
@@ -158,13 +207,16 @@ def robot_control(node_array, fuzzy_system, sensor, linear, angular, state_map):
     reward_list = []
     previous_state = np.full((362, 1), -1)
 
+    # Used for overide incase solving takes to long 
+    start_time = time.time()
+
     # Wait until position has a value (aka until the turtlebot position message has been received)
     while(shared_variables.position == None):
         pass
 
     while(shared_variables.shutdown_flag != True):
         # Decide which linear and angular movement should be taken
-        linear_value, angular_value, previous_state = movement_choice(fuzzy_system, sensor, linear, angular, state_map, path_list, reward_list, previous_state)
+        linear_value, angular_value, previous_state = movement_choice(fuzzy_system, state_map, path_list, reward_list, previous_state, start_time)
         msg.linear.x = linear_value
         msg.angular.z = angular_value
 
@@ -175,6 +227,13 @@ def robot_control(node_array, fuzzy_system, sensor, linear, angular, state_map):
            (shared_variables.position.y < -shared_variables.MAZE_BOUNDARY_COORDINATE)):
             msg.linear.x = 0.0
             msg.angular.z = 0.0
+            # Reset time
+            start_time = time.time()
+
+        # Request reseting everything if 45 min has passed
+        if((time.time() - start_time) > 2700):
+            shared_variables.reset_request = True
+            start_time = time.time()
 
         # Send message
         publisher.publish(msg)
