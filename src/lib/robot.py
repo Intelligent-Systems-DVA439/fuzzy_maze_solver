@@ -43,7 +43,7 @@ class Range:
 
 #==============================================================================
 # Fuzzy movement choice
-def fuzzy_movement_choice(np_sensor_data, fuzzy_system):
+def fuzzy_movement_choice(sensor_data, fuzzy_system):
     # For normalization and unnormalization
     sensor = Range(0, 3.51)
     linear = Range(-0.26, 0.26)
@@ -52,11 +52,11 @@ def fuzzy_movement_choice(np_sensor_data, fuzzy_system):
     # Provide normalized sensor values to fuzzy system
     # Lidar values go counter clockwise and start infront of the robot
     # Left value is mean value of a 70 degree cone to the left
-    fuzzy_system.input['left_sensor'] = (np.mean(np_sensor_data[10:80]) - sensor.min_val)/(sensor.max_val - sensor.min_val)
+    fuzzy_system.input['left_sensor'] = (np.mean(sensor_data[10:80]) - sensor.min_val)/(sensor.max_val - sensor.min_val)
     # Front value is min value of a 40 degree cone forward
-    fuzzy_system.input['front_sensor'] = (np.min(np.concatenate((np_sensor_data[-20:], np_sensor_data[0:20]), axis=None)) - sensor.min_val)/(sensor.max_val - sensor.min_val)
+    fuzzy_system.input['front_sensor'] = (np.min(np.concatenate((sensor_data[-20:], sensor_data[0:20]), axis=None)) - sensor.min_val)/(sensor.max_val - sensor.min_val)
     # Right value is mean value of a 70 degree cone to the right
-    fuzzy_system.input['right_sensor'] = (np.mean(np_sensor_data[-80:-10]) - sensor.min_val)/(sensor.max_val - sensor.min_val)
+    fuzzy_system.input['right_sensor'] = (np.mean(sensor_data[-80:-10]) - sensor.min_val)/(sensor.max_val - sensor.min_val)
 
     # Fuzzy computation
     fuzzy_system.compute()
@@ -73,9 +73,9 @@ def fuzzy_movement_choice(np_sensor_data, fuzzy_system):
 # Exploration function deciding if random exploration action should be taken
 def exploration_function(state_map, current_state, direction, magnitude):
 
-    # Inverse logarithmic growth probability based on number of edges/neighbors
-    def neighbor_probability(x, upper_limit):
-        # If more than upper_limit number of edges, 1% chance
+    # Inverse logarithmic growth probability
+    def inv_log_prob(x, upper_limit):
+        # If more than upper_limit number, 1% chance
         if x >= upper_limit:
             return 0.01
         # Log(x) when x<1 is more than 1 (which would mean more than 100%)
@@ -89,7 +89,7 @@ def exploration_function(state_map, current_state, direction, magnitude):
 
 
     # Calculate chance based on number or edges of current state, 0 edges 70% chance and then dropping off to 1% in a inverse logarithmic growth curve
-    neighbor_chance = neighbor_probability(len(state_map[current_state.tostring()].edges), 6)
+    neighbor_chance = inv_log_prob(len(state_map[current_state.tostring()].edges), 6)
 
     # Chance to take random direction
     if(random.random() < neighbor_chance):
@@ -107,8 +107,8 @@ def exploration_function(state_map, current_state, direction, magnitude):
 #==============================================================================
 
 #==============================================================================
-# Decides which direction to go according to global pathing
-def pathing_direction(fuzzy_angular, state_map, current_state):
+# Finds best edge/neighbor (the one with lowest values since shortest path is minimization problem)
+def find_best_edge(state_map, current_state):
     # NOTE! np array can not be used as a hash key, hence converting it to string
 
     best_edge = None
@@ -123,9 +123,9 @@ def pathing_direction(fuzzy_angular, state_map, current_state):
             else:
                 best_edge = edge
                 break
-        # Current state does not have any valid neighbors, global pathing can not help and thus gives no input
+        # Current state does not have any valid neighbors, return None
         if(best_edge == None):
-            return 1
+            return best_edge
         else:
             # Check through all neighbors for best one
             for edge in state_map[current_state.tostring()].edges:
@@ -138,23 +138,32 @@ def pathing_direction(fuzzy_angular, state_map, current_state):
                     if(state_map[edge.end.tostring()].value < state_map[best_edge.end.tostring()].value):
                         best_edge = edge
 
-        # Find which direction should be taken to get to best state next
-        # Both agree, don't change direction
-        if(np.sign(best_edge.direction) == np.sign(fuzzy_angular)):
-            direction = 1
-        # Change direction to oposite
-        else:
-            direction = -1
+    return best_edge
+#==============================================================================
 
-        # Decide on angular magnitude
-        magnitude = 1*abs(fuzzy_angular)/abs(best_edge.direction)
+#==============================================================================
+# Decides which direction to go according to global pathing
+def global_pathing_choice(fuzzy_angular, state_map, current_state):
+    # Find best edge/neighbor
+    best_edge = find_best_edge(state_map, current_state)
 
-        # Random exploration, chance is based on number of edges and number of new states/edges dicovered last epoch
-        direction, magnitude = exploration_function(state_map, current_state, direction, magnitude)
-
-    # No neighbors, then global pathing can't help and it gives no input
-    else:
+    # No valid neighbor or edge was found, global pathing can't help and gives no input
+    if(best_edge == None):
         return 1
+
+    # Find which direction should be taken to get to best state next
+    # Both agree, don't change direction
+    if(np.sign(best_edge.direction) == np.sign(fuzzy_angular)):
+        direction = 1
+    # Disagree, change direction to oposite
+    else:
+        direction = -1
+
+    # Decide on angular magnitude
+    magnitude = 1*abs(fuzzy_angular)/abs(best_edge.direction)
+
+    # Random exploration, chance is based on number of edges of current state
+    direction, magnitude = exploration_function(state_map, current_state, direction, magnitude)
 
     return direction*magnitude
 #==============================================================================
@@ -163,35 +172,38 @@ def pathing_direction(fuzzy_angular, state_map, current_state):
 # Decide which movement should be taken
 def movement_choice(fuzzy_system, state_map, path_list, reward_list, previous_state, start_time):
     # Get sensor values (percept)
-    np_sensor_data = np.array(shared_variables.raw_sensor_data)
+    sensor_data = np.array(shared_variables.raw_sensor_data)
 
     # Stuck until sensor has been initialized and sensor values have been received
     while True:
-        if(np.any(np_sensor_data != -1)):
+        if(np.any(sensor_data != -1)):
             break
-        np_sensor_data = np.array(shared_variables.raw_sensor_data)
+        sensor_data = np.array(shared_variables.raw_sensor_data)
 
     # Set all inf values to max value since average is calculated later in fuzzy
-    np_sensor_data[np_sensor_data == np.inf] = 3.5
+    sensor_data[sensor_data == np.inf] = 3.5
 
 
     # Fuzzy movement choice
-    fuzzy_linear, fuzzy_angular = fuzzy_movement_choice(np_sensor_data, fuzzy_system)
+    fuzzy_linear, fuzzy_angular = fuzzy_movement_choice(sensor_data, fuzzy_system)
 
-    # Create current state and do mapping of the maze
+    # Map maze, and create current state
     current_state = state_mapping(fuzzy_linear, state_map, path_list, reward_list, previous_state)
 
     # Global path movement choice
-    global_pathing_direction = pathing_direction(fuzzy_angular, state_map, current_state)
+    global_pathing_angular = global_pathing_choice(fuzzy_angular, state_map, current_state)
 
     # Final movement choice
     # Linear velocity
     linear_value = fuzzy_linear
+    # Angular velocity
+    # Taken less than 30 min
     if((time.time() - start_time) < 1800):
         # Turning is based on fuzzy, with input from global path on where to turn
-        angular_value = global_pathing_direction*fuzzy_angular
+        angular_value = fuzzy_angular * global_pathing_angular
     # Taken 30 min (TO LONG), fuzzy overide
     else:
+        print("!Fuzzy overide!")
         # Turning only based on fuzzy
         angular_value = fuzzy_angular
 
