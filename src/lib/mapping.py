@@ -1,7 +1,7 @@
 # mapping.py
 #==============================================================================
 # Author: Carl Larsson
-# Description: mapping related functions
+# Description: Mapping related functions
 # Date: 15-02-2024
 
 # This software is licensed under the MIT License
@@ -17,6 +17,7 @@ import numpy as np
 
 # Project libraries
 from lib import shared_variables
+from lib.utility import found_goal
 #------------------------------------------------------------------------------
 
 
@@ -98,10 +99,7 @@ def state_mapping(fuzzy_linear, state_map, path_list, reward_list, previous_stat
     # If the new/current state is not in state map, create it and add it
     if current_state.tostring() not in state_map:
         # If outside maze, then it's goal position
-        if((shared_variables.position.x > shared_variables.MAZE_BOUNDARY_COORDINATE) |
-           (shared_variables.position.x < -shared_variables.MAZE_BOUNDARY_COORDINATE) |
-           (shared_variables.position.y > shared_variables.MAZE_BOUNDARY_COORDINATE) |
-           (shared_variables.position.y < -shared_variables.MAZE_BOUNDARY_COORDINATE)):
+        if found_goal():
             goal = True
         else:
             goal = False
@@ -130,10 +128,7 @@ def state_mapping(fuzzy_linear, state_map, path_list, reward_list, previous_stat
 
 
     # If we are in goal state, update value of all states, flush path and reward list after
-    if((shared_variables.position.x > shared_variables.MAZE_BOUNDARY_COORDINATE) |
-       (shared_variables.position.x < -shared_variables.MAZE_BOUNDARY_COORDINATE) |
-       (shared_variables.position.y > shared_variables.MAZE_BOUNDARY_COORDINATE) |
-       (shared_variables.position.y < -shared_variables.MAZE_BOUNDARY_COORDINATE)):
+    if found_goal():
         # Update value of every state
         update_state_value(state_map, path_list, reward_list)
 
