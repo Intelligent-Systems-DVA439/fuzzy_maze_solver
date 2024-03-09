@@ -102,6 +102,17 @@ def save_state_map(save_file, state_map):
 #==============================================================================
 
 #==============================================================================
+def found_goal():
+    if((shared_variables.position.x > shared_variables.MAZE_BOUNDARY_COORDINATE) |
+       (shared_variables.position.x < -shared_variables.MAZE_BOUNDARY_COORDINATE) |
+       (shared_variables.position.y > shared_variables.MAZE_BOUNDARY_COORDINATE) |
+       (shared_variables.position.y < -shared_variables.MAZE_BOUNDARY_COORDINATE)):
+        return True
+    else:
+        return False
+#==============================================================================
+
+#==============================================================================
 # Reset simulation
 def reset_simulation(node_array):
     # Create service reset node
@@ -120,16 +131,11 @@ def reset_simulation(node_array):
 
     while(shared_variables.shutdown_flag == False):
         # Reset simulation once goal is reached or reset has been requested
-        if((shared_variables.position.x > shared_variables.MAZE_BOUNDARY_COORDINATE) | 
-           (shared_variables.position.x < -shared_variables.MAZE_BOUNDARY_COORDINATE) | 
-           (shared_variables.position.y > shared_variables.MAZE_BOUNDARY_COORDINATE) | 
-           (shared_variables.position.y < -shared_variables.MAZE_BOUNDARY_COORDINATE) |
-           (shared_variables.reset_request == True)):
-
-            if(shared_variables.reset_request == True):
-                print("Reset request received, reseting")
-            else:
+        if((found_goal()) | (shared_variables.reset_request == True)):
+            if found_goal():
                 print("Goal reached, reseting")
+            else:
+                print("Reset request received, reseting")
 
             time.sleep(5)
             reset_world.call_async(request)
