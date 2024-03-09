@@ -16,8 +16,6 @@
 import math
 import random
 import time
-
-# Functional libraries
 import numpy as np
 
 # rclpy libraries
@@ -27,6 +25,7 @@ from geometry_msgs.msg import Twist
 
 # Project libraries
 from lib import shared_variables
+from lib.utility import found_goal
 from lib.mapping import state_mapping, update_state_value
 #------------------------------------------------------------------------------
 
@@ -76,10 +75,10 @@ def exploration_function(state_map, current_state, direction, magnitude):
 
     # Inverse logarithmic growth probability based on number of edges/neighbors
     def neighbor_probability(x, upper_limit):
-        # If more than upper_limit number of edges, 0% chance
+        # If more than upper_limit number of edges, 1% chance
         if x >= upper_limit:
             return 0.01
-        # Log(x) when x<1 is over 1 (which would mean more than 100%)
+        # Log(x) when x<1 is more than 1 (which would mean more than 100%)
         elif x <= 1:
             return 0.7
         # In between chance is based on inverse logarithmic growth
@@ -89,7 +88,7 @@ def exploration_function(state_map, current_state, direction, magnitude):
             return probability
 
 
-    # Calculate chance based on number or edges of current state, 0 edges 100% chance and then dropping off to 0% in a inverse logarithmic growth curve
+    # Calculate chance based on number or edges of current state, 0 edges 70% chance and then dropping off to 1% in a inverse logarithmic growth curve
     neighbor_chance = neighbor_probability(len(state_map[current_state.tostring()].edges), 6)
 
     # Chance to take random direction
@@ -130,8 +129,11 @@ def pathing_direction(fuzzy_angular, state_map, current_state):
         else:
             # Check through all neighbors for best one
             for edge in state_map[current_state.tostring()].edges:
-                # make sure edge does not have value 0 (unless goal state), because it has just not had its value updated then, and should thus not be considered
+                # Make sure edge does not have value 0 (unless goal state), because it has just not had its value updated then, and should thus not be considered
                 if((state_map[edge.end.tostring()].value == 0) & (state_map[edge.end.tostring()].goal != True)):
+                    pass
+                # Valid neighbor, check if it has lower (better) value than current best
+                else:
                     # Shortest path is minimization problem, thus lower value is better
                     if(state_map[edge.end.tostring()].value < state_map[best_edge.end.tostring()].value):
                         best_edge = edge
@@ -145,7 +147,7 @@ def pathing_direction(fuzzy_angular, state_map, current_state):
             direction = -1
 
         # Decide on angular magnitude
-        magnitude = abs(fuzzy_angular)/abs(best_edge.direction)
+        magnitude = 1*abs(fuzzy_angular)/abs(best_edge.direction)
 
         # Random exploration, chance is based on number of edges and number of new states/edges dicovered last epoch
         direction, magnitude = exploration_function(state_map, current_state, direction, magnitude)
@@ -158,49 +160,42 @@ def pathing_direction(fuzzy_angular, state_map, current_state):
 #==============================================================================
 
 #==============================================================================
-# Global pathing and mapping
-def global_pathing(fuzzy_linear, fuzzy_angular, state_map, path_list, reward_list, previous_state):
-    # Create current state and do mapping of the maze
-    current_state = state_mapping(fuzzy_linear, state_map, path_list, reward_list, previous_state)
-
-    # Find which direction should be taken according to global pathing
-    direction = pathing_direction(fuzzy_angular, state_map, current_state)
-    
-    return current_state, direction
-#==============================================================================
-
-#==============================================================================
 # Decide which movement should be taken
 def movement_choice(fuzzy_system, state_map, path_list, reward_list, previous_state, start_time):
     # Get sensor values (percept)
     np_sensor_data = np.array(shared_variables.raw_sensor_data)
 
     # Stuck until sensor has been initialized and sensor values have been received
-    while(np.all(np_sensor_data == -1)):
+    while True:
+        if(np.any(np_sensor_data != -1)):
+            break
         np_sensor_data = np.array(shared_variables.raw_sensor_data)
 
-    # Set all inf values to max value since average is calculated later
-    np_sensor_data[np_sensor_data == math.inf] = 3.5
+    # Set all inf values to max value since average is calculated later in fuzzy
+    np_sensor_data[np_sensor_data == np.inf] = 3.5
 
 
-    # Fuzzy
+    # Fuzzy movement choice
     fuzzy_linear, fuzzy_angular = fuzzy_movement_choice(np_sensor_data, fuzzy_system)
 
-    # Global path algorithm and mapping
-    previous_state, global_pathing_direction = global_pathing(fuzzy_linear, fuzzy_angular, state_map, path_list, reward_list, previous_state)
+    # Create current state and do mapping of the maze
+    current_state = state_mapping(fuzzy_linear, state_map, path_list, reward_list, previous_state)
+
+    # Global path movement choice
+    global_pathing_direction = pathing_direction(fuzzy_angular, state_map, current_state)
 
     # Final movement choice
     # Linear velocity
     linear_value = fuzzy_linear
-    # Unless its taken 30min
     if((time.time() - start_time) < 1800):
         # Turning is based on fuzzy, with input from global path on where to turn
         angular_value = global_pathing_direction*fuzzy_angular
+    # Taken 30 min (TO LONG), fuzzy overide
     else:
         # Turning only based on fuzzy
         angular_value = fuzzy_angular
 
-    return linear_value, angular_value, previous_state
+    return linear_value, angular_value, current_state
 #==============================================================================
 
 #==============================================================================
@@ -212,16 +207,15 @@ def robot_control(node_array, fuzzy_system, state_map):
     publisher = node.create_publisher(Twist, '/cmd_vel', 1)
     # Add node to node array for shutdown
     node_array.append(node)
-
-    # set message to correct struct type
+    # Set message to correct struct type
     msg = Twist()
 
     # Variables for global pathing and mapping
     path_list = []
     reward_list = []
-    previous_state = np.full((362, 1), -1)
+    previous_state = np.full((2, 1), -1)
 
-    # Used for overide incase solving takes to long 
+    # Timer, used for overide incase solving takes to long 
     start_time = time.time()
 
     # Wait until position has a value (aka until the turtlebot position message has been received)
@@ -234,22 +228,33 @@ def robot_control(node_array, fuzzy_system, state_map):
         msg.linear.x = linear_value
         msg.angular.z = angular_value
 
-        # Movement is set to 0 if goal is reached to not influence beginning after reset
-        if((shared_variables.position.x > shared_variables.MAZE_BOUNDARY_COORDINATE) |
-           (shared_variables.position.x < -shared_variables.MAZE_BOUNDARY_COORDINATE) |
-           (shared_variables.position.y > shared_variables.MAZE_BOUNDARY_COORDINATE) |
-           (shared_variables.position.y < -shared_variables.MAZE_BOUNDARY_COORDINATE)):
+        # Goal reached
+        if found_goal():
+            # Set all movement to 0 to not influence beginning after reset
             msg.linear.x = 0.0
+            msg.linear.y = 0.0
+            msg.linear.z = 0.0
+            msg.angular.x = 0.0
+            msg.angular.y = 0.0
             msg.angular.z = 0.0
-            # Reset time
+            # Reset timer
             start_time = time.time()
 
-        # Request reseting everything if 45 min has passed
+        # 45 min has passed (TO LONG)
         if((time.time() - start_time) > 2700):
+            # Request reseting everything
             shared_variables.reset_request = True
+            # Set all movement to 0 to not influence beginning after reset
+            msg.linear.x = 0.0
+            msg.linear.y = 0.0
+            msg.linear.z = 0.0
+            msg.angular.x = 0.0
+            msg.angular.y = 0.0
+            msg.angular.z = 0.0
+            # Reset timer
             start_time = time.time()
 
-        # Send message
+        # Send movement message
         publisher.publish(msg)
 
     # Only returns on shutdown
