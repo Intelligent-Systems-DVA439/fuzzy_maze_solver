@@ -135,7 +135,7 @@ def reset_simulation(node_array):
             if found_goal():
                 print("Goal reached, reseting")
             else:
-                print("Reset request received, reseting")
+                print("!!Reset request received, reseting!!")
 
             time.sleep(5)
             reset_world.call_async(request)
