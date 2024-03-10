@@ -40,15 +40,21 @@ def create_fuzzy_system(defuzzy_method = 'centroid', visualize_memberships = 0, 
 
     # Normalized input (sensor) membership functions, using triangular and trapezoidal memberships
 
+    # Distance enum
+    class Distance(Enum):
+        C = 'close'
+        M = 'medium'
+        F = 'far'
+
     # Side sensor enum
     class Side_sensor(Enum):
         CLOSE = 0.05 # Affects jittering towards wall
         MEDIUM = 0.15 # Affects jittering towards wall
         FAR = 0.55 # Affects cornering and how close to corner it goes, aswell as willingness to enter openings
     # Left sensor
-    left_sensor['close'] = fuzz.trapmf(left_sensor.universe, [-np.inf, 0, Side_sensor.CLOSE.value, Side_sensor.MEDIUM.value]) # "Lower", created using the fist value as being outside of range "to the left"
-    left_sensor['medium'] = fuzz.trimf(left_sensor.universe, [Side_sensor.CLOSE.value, Side_sensor.MEDIUM.value, Side_sensor.FAR.value])
-    left_sensor['far'] = fuzz.trapmf(left_sensor.universe, [Side_sensor.MEDIUM.value, Side_sensor.FAR.value, 1, np.inf]) # "Upper", created using the last value outside of range "to the right"
+    left_sensor[Distance.C] = fuzz.trapmf(left_sensor.universe, [-np.inf, 0, Side_sensor.CLOSE.value, Side_sensor.MEDIUM.value]) # "Lower", created using the fist value as being outside of range "to the left"
+    left_sensor[Distance.M] = fuzz.trimf(left_sensor.universe, [Side_sensor.CLOSE.value, Side_sensor.MEDIUM.value, Side_sensor.FAR.value])
+    left_sensor[Distance.F] = fuzz.trapmf(left_sensor.universe, [Side_sensor.MEDIUM.value, Side_sensor.FAR.value, 1, np.inf]) # "Upper", created using the last value outside of range "to the right"
 
     # Front sensor enum
     class Front_sensor(Enum):
@@ -56,14 +62,14 @@ def create_fuzzy_system(defuzzy_method = 'centroid', visualize_memberships = 0, 
         MEDIUM = 0.10
         FAR = 0.28
     # Front sensor
-    front_sensor['close'] = fuzz.trapmf(front_sensor.universe, [-np.inf, 0, Front_sensor.CLOSE.value, Front_sensor.MEDIUM.value]) # "Lower", created using the fist value as being outside of range "to the left"
-    front_sensor['medium'] = fuzz.trimf(front_sensor.universe, [Front_sensor.CLOSE.value, Front_sensor.MEDIUM.value, Front_sensor.FAR.value])
-    front_sensor['far'] = fuzz.trapmf(front_sensor.universe, [Front_sensor.MEDIUM.value, Front_sensor.FAR.value, 1, np.inf]) # "Upper", created using the last value outside of range "to the right"
+    front_sensor[Distance.C] = fuzz.trapmf(front_sensor.universe, [-np.inf, 0, Front_sensor.CLOSE.value, Front_sensor.MEDIUM.value]) # "Lower", created using the fist value as being outside of range "to the left"
+    front_sensor[Distance.M] = fuzz.trimf(front_sensor.universe, [Front_sensor.CLOSE.value, Front_sensor.MEDIUM.value, Front_sensor.FAR.value])
+    front_sensor[Distance.F] = fuzz.trapmf(front_sensor.universe, [Front_sensor.MEDIUM.value, Front_sensor.FAR.value, 1, np.inf]) # "Upper", created using the last value outside of range "to the right"
 
     # Right sensor
-    right_sensor['close'] = fuzz.trapmf(right_sensor.universe, [-np.inf, 0, Side_sensor.CLOSE.value, Side_sensor.MEDIUM.value]) # "Lower", created using the fist value as being outside of range "to the left"
-    right_sensor['medium'] = fuzz.trimf(right_sensor.universe, [Side_sensor.CLOSE.value, Side_sensor.MEDIUM.value, Side_sensor.FAR.value])
-    right_sensor['far'] = fuzz.trapmf(right_sensor.universe, [Side_sensor.MEDIUM.value, Side_sensor.FAR.value, 1, np.inf]) # "Upper", created using the last value outside of range "to the right"
+    right_sensor[Distance.C] = fuzz.trapmf(right_sensor.universe, [-np.inf, 0, Side_sensor.CLOSE.value, Side_sensor.MEDIUM.value]) # "Lower", created using the fist value as being outside of range "to the left"
+    right_sensor[Distance.M] = fuzz.trimf(right_sensor.universe, [Side_sensor.CLOSE.value, Side_sensor.MEDIUM.value, Side_sensor.FAR.value])
+    right_sensor[Distance.F] = fuzz.trapmf(right_sensor.universe, [Side_sensor.MEDIUM.value, Side_sensor.FAR.value, 1, np.inf]) # "Upper", created using the last value outside of range "to the right"
 
     #++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++++
 
@@ -111,38 +117,38 @@ def create_fuzzy_system(defuzzy_method = 'centroid', visualize_memberships = 0, 
 
     # Define fuzzy logic rules
     # Linear
-    rule1 = ctrl.Rule(front_sensor['close'], linear_movement['linear_reverse'])
-    rule2 = ctrl.Rule(front_sensor['medium'], linear_movement['linear_stop'])
-    rule3 = ctrl.Rule(front_sensor['far'], linear_movement['linear_forward'])
+    rule1 = ctrl.Rule(front_sensor[Distance.C], linear_movement['linear_reverse'])
+    rule2 = ctrl.Rule(front_sensor[Distance.M], linear_movement['linear_stop'])
+    rule3 = ctrl.Rule(front_sensor[Distance.F], linear_movement['linear_forward'])
 
     # Angular
-    rule4 = ctrl.Rule(left_sensor['far'] & front_sensor['far'] & right_sensor['far'], angular_movement['angular_left_slow']) # Favor Left (Required for the turtlebot to take left in T crossings)
-    rule5 = ctrl.Rule(left_sensor['far'] & front_sensor['far'] & right_sensor['medium'], angular_movement['angular_left_slow']) #?
-    rule6 = ctrl.Rule(left_sensor['far'] & front_sensor['far'] & right_sensor['close'], angular_movement['angular_left_fast'])
-    rule7 = ctrl.Rule(left_sensor['far'] & front_sensor['medium'] & right_sensor['far'], angular_movement['angular_left_slow']) # Favor left
-    rule8 = ctrl.Rule(left_sensor['far'] & front_sensor['medium'] & right_sensor['medium'], angular_movement['angular_left_slow'])
-    rule9 = ctrl.Rule(left_sensor['far'] & front_sensor['medium'] & right_sensor['close'], angular_movement['angular_left_fast'])
-    rule10 = ctrl.Rule(left_sensor['far'] & front_sensor['close'] & right_sensor['far'], angular_movement['angular_left_fast']) # Favor left
-    rule11 = ctrl.Rule(left_sensor['far'] & front_sensor['close'] & right_sensor['medium'], angular_movement['angular_left_fast'])
-    rule12 = ctrl.Rule(left_sensor['far'] & front_sensor['close'] & right_sensor['close'], angular_movement['angular_left_fast'])
-    rule13 = ctrl.Rule(left_sensor['medium'] & front_sensor['far'] & right_sensor['far'], angular_movement['angular_right_slow']) #?
-    rule14 = ctrl.Rule(left_sensor['medium'] & front_sensor['far'] & right_sensor['medium'], angular_movement['angular_stop'])
-    rule15 = ctrl.Rule(left_sensor['medium'] & front_sensor['far'] & right_sensor['close'], angular_movement['angular_left_fast'])
-    rule16 = ctrl.Rule(left_sensor['medium'] & front_sensor['medium'] & right_sensor['far'], angular_movement['angular_right_slow']) #?
-    rule17 = ctrl.Rule(left_sensor['medium'] & front_sensor['medium'] & right_sensor['medium'], angular_movement['angular_left_slow']) # Favor left
-    rule18 = ctrl.Rule(left_sensor['medium'] & front_sensor['medium'] & right_sensor['close'], angular_movement['angular_left_fast'])
-    rule19 = ctrl.Rule(left_sensor['medium'] & front_sensor['close'] & right_sensor['far'], angular_movement['angular_right_fast']) #?
-    rule20 = ctrl.Rule(left_sensor['medium'] & front_sensor['close'] & right_sensor['medium'], angular_movement['angular_left_fast']) # Favor left
-    rule21 = ctrl.Rule(left_sensor['medium'] & front_sensor['close'] & right_sensor['close'], angular_movement['angular_left_fast'])
-    rule22 = ctrl.Rule(left_sensor['close'] & front_sensor['far'] & right_sensor['far'], angular_movement['angular_right_fast'])
-    rule23 = ctrl.Rule(left_sensor['close'] & front_sensor['far'] & right_sensor['medium'], angular_movement['angular_right_fast'])
-    rule24 = ctrl.Rule(left_sensor['close'] & front_sensor['far'] & right_sensor['close'], angular_movement['angular_stop'])
-    rule25 = ctrl.Rule(left_sensor['close'] & front_sensor['medium'] & right_sensor['far'], angular_movement['angular_right_fast'])
-    rule26 = ctrl.Rule(left_sensor['close'] & front_sensor['medium'] & right_sensor['medium'], angular_movement['angular_right_fast'])
-    rule27 = ctrl.Rule(left_sensor['close'] & front_sensor['medium'] & right_sensor['close'], angular_movement['angular_stop'])
-    rule28 = ctrl.Rule(left_sensor['close'] & front_sensor['close'] & right_sensor['far'], angular_movement['angular_right_fast'])
-    rule29 = ctrl.Rule(left_sensor['close'] & front_sensor['close'] & right_sensor['medium'], angular_movement['angular_right_fast'])
-    rule30 = ctrl.Rule(left_sensor['close'] & front_sensor['close'] & right_sensor['close'], angular_movement['angular_left_fast']) # Favor left
+    rule4 = ctrl.Rule(left_sensor[Distance.F] & front_sensor[Distance.F] & right_sensor[Distance.F], angular_movement['angular_left_slow']) # Favor Left (Required for the turtlebot to take left in T crossings)
+    rule5 = ctrl.Rule(left_sensor[Distance.F] & front_sensor[Distance.F] & right_sensor[Distance.M], angular_movement['angular_left_slow']) #?
+    rule6 = ctrl.Rule(left_sensor[Distance.F] & front_sensor[Distance.F] & right_sensor[Distance.C], angular_movement['angular_left_fast'])
+    rule7 = ctrl.Rule(left_sensor[Distance.F] & front_sensor[Distance.M] & right_sensor[Distance.F], angular_movement['angular_left_slow']) # Favor left
+    rule8 = ctrl.Rule(left_sensor[Distance.F] & front_sensor[Distance.M] & right_sensor[Distance.M], angular_movement['angular_left_slow'])
+    rule9 = ctrl.Rule(left_sensor[Distance.F] & front_sensor[Distance.M] & right_sensor[Distance.C], angular_movement['angular_left_fast'])
+    rule10 = ctrl.Rule(left_sensor[Distance.F] & front_sensor[Distance.C] & right_sensor[Distance.F], angular_movement['angular_left_fast']) # Favor left
+    rule11 = ctrl.Rule(left_sensor[Distance.F] & front_sensor[Distance.C] & right_sensor[Distance.M], angular_movement['angular_left_fast'])
+    rule12 = ctrl.Rule(left_sensor[Distance.F] & front_sensor[Distance.C] & right_sensor[Distance.C], angular_movement['angular_left_fast'])
+    rule13 = ctrl.Rule(left_sensor[Distance.M] & front_sensor[Distance.F] & right_sensor[Distance.F], angular_movement['angular_right_slow']) #?
+    rule14 = ctrl.Rule(left_sensor[Distance.M] & front_sensor[Distance.F] & right_sensor[Distance.M], angular_movement['angular_stop'])
+    rule15 = ctrl.Rule(left_sensor[Distance.M] & front_sensor[Distance.F] & right_sensor[Distance.C], angular_movement['angular_left_fast'])
+    rule16 = ctrl.Rule(left_sensor[Distance.M] & front_sensor[Distance.M] & right_sensor[Distance.F], angular_movement['angular_right_slow']) #?
+    rule17 = ctrl.Rule(left_sensor[Distance.M] & front_sensor[Distance.M] & right_sensor[Distance.M], angular_movement['angular_left_slow']) # Favor left
+    rule18 = ctrl.Rule(left_sensor[Distance.M] & front_sensor[Distance.M] & right_sensor[Distance.C], angular_movement['angular_left_fast'])
+    rule19 = ctrl.Rule(left_sensor[Distance.M] & front_sensor[Distance.C] & right_sensor[Distance.F], angular_movement['angular_right_fast']) #?
+    rule20 = ctrl.Rule(left_sensor[Distance.M] & front_sensor[Distance.C] & right_sensor[Distance.M], angular_movement['angular_left_fast']) # Favor left
+    rule21 = ctrl.Rule(left_sensor[Distance.M] & front_sensor[Distance.C] & right_sensor[Distance.C], angular_movement['angular_left_fast'])
+    rule22 = ctrl.Rule(left_sensor[Distance.C] & front_sensor[Distance.F] & right_sensor[Distance.F], angular_movement['angular_right_fast'])
+    rule23 = ctrl.Rule(left_sensor[Distance.C] & front_sensor[Distance.F] & right_sensor[Distance.M], angular_movement['angular_right_fast'])
+    rule24 = ctrl.Rule(left_sensor[Distance.C] & front_sensor[Distance.F] & right_sensor[Distance.C], angular_movement['angular_stop'])
+    rule25 = ctrl.Rule(left_sensor[Distance.C] & front_sensor[Distance.M] & right_sensor[Distance.F], angular_movement['angular_right_fast'])
+    rule26 = ctrl.Rule(left_sensor[Distance.C] & front_sensor[Distance.M] & right_sensor[Distance.M], angular_movement['angular_right_fast'])
+    rule27 = ctrl.Rule(left_sensor[Distance.C] & front_sensor[Distance.M] & right_sensor[Distance.C], angular_movement['angular_stop'])
+    rule28 = ctrl.Rule(left_sensor[Distance.C] & front_sensor[Distance.C] & right_sensor[Distance.F], angular_movement['angular_right_fast'])
+    rule29 = ctrl.Rule(left_sensor[Distance.C] & front_sensor[Distance.C] & right_sensor[Distance.M], angular_movement['angular_right_fast'])
+    rule30 = ctrl.Rule(left_sensor[Distance.C] & front_sensor[Distance.C] & right_sensor[Distance.C], angular_movement['angular_left_fast']) # Favor left
 
 
     # Create fuzzy control system
