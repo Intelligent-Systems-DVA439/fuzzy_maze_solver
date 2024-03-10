@@ -76,19 +76,8 @@ def update_state_value(state_map, path_list, reward_list, alpha = 0.5, gamma = 1
 #==============================================================================
 
 #==============================================================================
-# Creates a map using states
-def state_mapping(fuzzy_linear, state_map, path_list, reward_list, previous_state):
-    # NOTE! np array can not be used as a hash key, hence converting it to string
-
-    # Wait until velocity has a value (aka until the turtlebot velocity message has been received)
-    while(shared_variables.velocity == None):
-        pass
-
-    # Wait until position has a value (aka until the turtlebot position message has been received)
-    while(shared_variables.position == None):
-        pass
-
-
+# Creates current state and adds it to state_map
+def create_state(state_map, previous_state):
     # Get current state (global position)
     current_state = np.round(np.concatenate((shared_variables.position.x, shared_variables.position.y), axis=None), 1)
     # First time, use current_state as previous_state
@@ -105,6 +94,12 @@ def state_mapping(fuzzy_linear, state_map, path_list, reward_list, previous_stat
             goal = False
         state_map[current_state.tostring()] = State(current_state[0], current_state[1], 0, goal)
 
+    return current_state
+#==============================================================================
+
+#==============================================================================
+# Creates edge
+def create_edge(state_map, previous_state):
     # Unless goal state (goal state shouldn't have edges going from it)
     if not state_map[previous_state.tostring()].goal:
         # Add edge from previous state to the new/current state, unless they are the same state
@@ -113,6 +108,30 @@ def state_mapping(fuzzy_linear, state_map, path_list, reward_list, previous_stat
             temp_edge = Edge(previous_state, current_state, shared_variables.velocity.angular.z)
             if temp_edge not in state_map[previous_state.tostring()].edges:
                 state_map[previous_state.tostring()].add_edge(temp_edge)
+
+    # Nothing to return
+    return None
+#==============================================================================
+
+#==============================================================================
+# Creates a map using states
+def state_mapping(fuzzy_linear, state_map, path_list, reward_list, previous_state):
+    # NOTE! np array can not be used as a hash key, hence converting it to string
+
+    # Wait until velocity has a value (aka until the turtlebot velocity message has been received)
+    while(shared_variables.velocity == None):
+        pass
+
+    # Wait until position has a value (aka until the turtlebot position message has been received)
+    while(shared_variables.position == None):
+        pass
+
+
+    # Creates current state and adds it to state_map
+    current_state = create_state(state_map, previous_state)
+
+    # Creates edge
+    create_edge(state_map, previous_state)
 
     # Append current state to path/traversal list
     path_list.append(state_map[current_state.tostring()])
@@ -126,7 +145,6 @@ def state_mapping(fuzzy_linear, state_map, path_list, reward_list, previous_stat
     for i in range(len(reward_list)):
         reward_list[i] += 1
 
-
     # If we are in goal state, update value of all states, flush path and reward list after
     if found_goal():
         # Update value of every state
@@ -136,7 +154,6 @@ def state_mapping(fuzzy_linear, state_map, path_list, reward_list, previous_stat
         path_list.clear()
         # Flush reward list once goal is reached
         reward_list.clear()
-
 
     return current_state
 #==============================================================================
