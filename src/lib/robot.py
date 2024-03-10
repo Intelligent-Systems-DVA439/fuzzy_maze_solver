@@ -160,10 +160,13 @@ def global_pathing_choice(fuzzy_angular, state_map, current_state):
         direction = -1
 
     # Decide on angular magnitude
-    magnitude = 1*abs(fuzzy_angular)/abs(best_edge.direction)
+    magnitude = abs(fuzzy_angular)/abs(best_edge.direction)
 
     # Random exploration, chance is based on number of edges of current state
     direction, magnitude = exploration_function(state_map, current_state, direction, magnitude)
+
+    if(magnitude > 1):
+        magnitude = 1
 
     return direction*magnitude
 #==============================================================================
@@ -203,7 +206,8 @@ def movement_choice(fuzzy_system, state_map, path_list, reward_list, previous_st
         angular_value = fuzzy_angular * global_pathing_angular
     # Taken 30 min (TO LONG), fuzzy overide
     else:
-        print("!Fuzzy overide!")
+        if((time.time() - start_time) == 1800):
+            print("!Fuzzy overide!")
         # Turning only based on fuzzy
         angular_value = fuzzy_angular
 
