@@ -245,7 +245,7 @@ def robot_control(node_array, fuzzy_system, state_map):
         msg.angular.z = angular_value
 
         # Goal reached or 45 min has passed (TO LONG)
-        if((found_goal()) | ((time.time() - start_time) > 2700):
+        if((found_goal()) | ((time.time() - start_time) > 2700)):
             if((time.time() - start_time) > 2700):
                 # Request reseting everything
                 shared_variables.reset_request = True
