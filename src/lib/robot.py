@@ -160,7 +160,7 @@ def global_pathing_choice(fuzzy_angular, state_map, current_state):
         direction = -1
 
     # Decide on angular magnitude
-    magnitude = abs(fuzzy_angular)/abs(best_edge.direction)
+    magnitude = abs(best_edge.direction)/abs(fuzzy_angular)
 
     # Random exploration, chance is based on number of edges of current state
     direction, magnitude = exploration_function(state_map, current_state, direction, magnitude)
@@ -202,7 +202,7 @@ def movement_choice(fuzzy_system, state_map, path_list, reward_list, previous_st
     # Angular velocity
     # Taken less than 30 min
     if((time.time() - start_time) < 1800):
-        # Turning is based on fuzzy, with input from global path on where to turn
+        # Turning is based on fuzzy, with input from global pathing on where to turn
         angular_value = fuzzy_angular * global_pathing_angular
     # Taken 30 min (TO LONG), fuzzy overide
     else:
@@ -244,22 +244,12 @@ def robot_control(node_array, fuzzy_system, state_map):
         msg.linear.x = linear_value
         msg.angular.z = angular_value
 
-        # Goal reached
-        if found_goal():
-            # Set all movement to 0 to not influence beginning after reset
-            msg.linear.x = 0.0
-            msg.linear.y = 0.0
-            msg.linear.z = 0.0
-            msg.angular.x = 0.0
-            msg.angular.y = 0.0
-            msg.angular.z = 0.0
-            # Reset timer
-            start_time = time.time()
+        # Goal reached or 45 min has passed (TO LONG)
+        if((found_goal()) | ((time.time() - start_time) > 2700):
+            if((time.time() - start_time) > 2700):
+                # Request reseting everything
+                shared_variables.reset_request = True
 
-        # 45 min has passed (TO LONG)
-        if((time.time() - start_time) > 2700):
-            # Request reseting everything
-            shared_variables.reset_request = True
             # Set all movement to 0 to not influence beginning after reset
             msg.linear.x = 0.0
             msg.linear.y = 0.0
