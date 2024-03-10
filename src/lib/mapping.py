@@ -80,10 +80,6 @@ def update_state_value(state_map, path_list, reward_list, alpha = 0.5, gamma = 1
 def create_state(state_map, previous_state):
     # Get current state (global position)
     current_state = np.round(np.concatenate((shared_variables.position.x, shared_variables.position.y), axis=None), 1)
-    # First time, use current_state as previous_state
-    # After first time, previous state is provided as an argument and is the last loops current value (which is returned at the end)
-    if(np.all(previous_state == -1)):
-        previous_state = current_state
 
     # If the new/current state is not in state map, create it and add it
     if current_state.tostring() not in state_map:
@@ -99,7 +95,7 @@ def create_state(state_map, previous_state):
 
 #==============================================================================
 # Creates edge
-def create_edge(state_map, previous_state):
+def create_edge(state_map, previous_state, current_state):
     # Unless goal state (goal state shouldn't have edges going from it)
     if not state_map[previous_state.tostring()].goal:
         # Add edge from previous state to the new/current state, unless they are the same state
@@ -130,8 +126,13 @@ def state_mapping(fuzzy_linear, state_map, path_list, reward_list, previous_stat
     # Creates current state and adds it to state_map
     current_state = create_state(state_map, previous_state)
 
+    # First time, use current_state as previous_state
+    # After first time, previous state is provided as an argument and is the last loops current value (which is returned at the end)
+    if(np.all(previous_state == -1)):
+        previous_state = current_state
+
     # Creates edge
-    create_edge(state_map, previous_state)
+    create_edge(state_map, previous_state, current_state)
 
     # Append current state to path/traversal list
     path_list.append(state_map[current_state.tostring()])
