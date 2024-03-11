@@ -116,8 +116,8 @@ def found_goal():
 #==============================================================================
 
 #==============================================================================
-# Reset simulation
-def reset_simulation(node_array):
+# Reset simulation, and saves state_map everytime goal is reached for safety
+def reset_simulation(node_array, save_file, state_map):
     # Create service reset node
     node = rclpy.create_node('service_reset')
     reset_world = node.create_client(Empty, '/reset_world')
@@ -141,6 +141,11 @@ def reset_simulation(node_array):
                 print("!!Reset request received, reseting!!")
 
             time.sleep(5)
+
+            if found_goal():
+                # Save state_map
+                save_state_map(save_file, state_map)
+
             reset_world.call_async(request)
             time.sleep(1/10)
             shared_variables.reset_request = False
