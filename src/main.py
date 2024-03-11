@@ -57,9 +57,8 @@ def main(argv):
     t2 = threading.Thread(target=get_coordinates_velocity, name='t2', args = (node_array, executor_array))
 
     # Utility threads
-    # Thread for reseting simulation
-    # Threading requires the args to be sent as a tuple, hence the (arg1,) despite only sending 1 argument
-    t3 = threading.Thread(target=reset_simulation, name='t3', args = (node_array,))
+    # Thread for reseting simulation, also saves state_map everytime goal is reached for safety
+    t3 = threading.Thread(target=reset_simulation, name='t3', args = (node_array, args.s, state_map))
     # Thread for listening to keyboard input, once q, quit, exit or stop is entered, initiates shutdown
     t4 = threading.Thread(target=shutdown_function, name='t4', args = (node_array, executor_array))
 
