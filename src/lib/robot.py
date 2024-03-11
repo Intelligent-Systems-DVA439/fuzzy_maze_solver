@@ -206,7 +206,7 @@ def movement_choice(fuzzy_system, state_map, path_list, reward_list, previous_st
         angular_value = fuzzy_angular * global_pathing_angular
     # Taken 30 min (TO LONG), fuzzy overide
     else:
-        if(((time.time() - start_time) >= 1800) & ((time.time() - start_time) <= 1801)):
+        if(((time.time() - start_time) >= 1800) & ((time.time() - start_time) < 1801)):
             print("!Fuzzy overide!")
         # Turning only based on fuzzy
         angular_value = fuzzy_angular
