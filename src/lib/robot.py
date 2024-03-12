@@ -93,7 +93,7 @@ def exploration_function(state_map, current_state, direction, magnitude):
 
     # Chance to take random direction
     if(random.random() < neighbor_chance):
-        random_direction = -direction
+        random_direction = -1 if random.randint(0, 1) == 0 else 1
     else:
         random_direction = direction
 
