@@ -170,6 +170,10 @@ def calculate_turn(previous_state, current_state, next_state):
 #==============================================================================
 # Decides which direction to go according to global pathing
 def global_pathing_choice(fuzzy_angular, state_map, previous_state, current_state):
+    # Can't calculate how to turn if previous_state = current
+    if np.array_equal(previous_state, current_state):
+        return 1
+
     # Find best edge/neighbor
     best_edge = find_best_edge(state_map, current_state)
 
