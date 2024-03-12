@@ -47,7 +47,6 @@ def fuzzy_movement_choice(sensor_data, fuzzy_system):
     # For normalization and unnormalization
     sensor = Range(0, 3.51)
     linear = Range(-0.26, 0.26)
-    angular = Range(-1.82, 1.82)
 
     # Provide normalized sensor values to fuzzy system
     # Lidar values go counter clockwise and start infront of the robot
@@ -64,7 +63,8 @@ def fuzzy_movement_choice(sensor_data, fuzzy_system):
     # Fuzzy decision on which movement should be taken
     # Also "unnormalize" the data
     linear_value = (fuzzy_system.output['linear'] - (-1)) * (linear.max_val - linear.min_val) / (1 - (-1)) + linear.min_val
-    angular_value = (fuzzy_system.output['angular'] - (-1)) * (angular.max_val - angular.min_val) / (1 - (-1)) + angular.min_val
+    # Angular remains normalized
+    angular_value = fuzzy_system.output['angular']
 
     return linear_value, angular_value
 #==============================================================================
@@ -142,8 +142,33 @@ def find_best_edge(state_map, current_state):
 #==============================================================================
 
 #==============================================================================
+# Calculates the turn to take to get to next_state
+def calculate_turn(previous_state, current_state, next_state):
+    # Calculate vectors from previous coordinate to current and next coordinates
+    vector_previous_to_current = (current_state[0] - previous_state[0], current_state[1] - previous_state[1])
+    vector_current_to_next = (next_state[0] - current_state[0], next_state[1] - current_state[1])
+
+    # Calculate angle between the two vectors
+    angle = math.atan2(vector_current_to_next[1], vector_current_to_next[0]) - math.atan2(vector_previous_to_current[1], vector_previous_to_current[0])
+
+    # Normalize angle to range between -pi and pi
+    if angle > math.pi:
+        angle -= 2 * math.pi
+    elif angle < -math.pi:
+        angle += 2 * math.pi
+
+    # Determine direction (-1 for right turn, +1 for left turn)
+    direction = -1 if angle > 0 else 1
+
+    # Calculate magnitude of the turn (absolute value of angle) and normalize to [0, 1]
+    magnitude = abs(angle) / math.pi
+
+    return direction, magnitude
+#==============================================================================
+
+#==============================================================================
 # Decides which direction to go according to global pathing
-def global_pathing_choice(fuzzy_angular, state_map, current_state):
+def global_pathing_choice(fuzzy_angular, state_map, previous_state, current_state):
     # Find best edge/neighbor
     best_edge = find_best_edge(state_map, current_state)
 
@@ -151,16 +176,15 @@ def global_pathing_choice(fuzzy_angular, state_map, current_state):
     if(best_edge == None):
         return 1
 
-    # Find which direction should be taken to get to best state next
-    # Both agree, don't change direction
-    if(np.sign(best_edge.direction) == np.sign(fuzzy_angular)):
+    # Find which direction we should go and magnitude
+    direction, magnitude = calculate_turn(previous_state, current_state, best_edge.end)
+
+    # If they agree on direction, don't change direction
+    if(np.sign(direction) == np.sign(fuzzy_angular)):
         direction = 1
     # Disagree, change direction to oposite
     else:
         direction = -1
-
-    # Decide on angular magnitude
-    magnitude = abs(best_edge.direction)/abs(fuzzy_angular)
 
     # Random exploration, chance is based on number of edges of current state
     direction, magnitude = exploration_function(state_map, current_state, direction, magnitude)
@@ -174,6 +198,9 @@ def global_pathing_choice(fuzzy_angular, state_map, current_state):
 #==============================================================================
 # Decide which movement should be taken
 def movement_choice(fuzzy_system, state_map, path_list, reward_list, previous_state, start_time):
+    # Used to unnormalize values
+    angular = Range(-1.82, 1.82)
+
     # Get sensor values (percept)
     sensor_data = np.array(shared_variables.raw_sensor_data)
 
@@ -194,7 +221,7 @@ def movement_choice(fuzzy_system, state_map, path_list, reward_list, previous_st
     current_state = state_mapping(fuzzy_linear, state_map, path_list, reward_list, previous_state)
 
     # Global path movement choice
-    global_pathing_angular = global_pathing_choice(fuzzy_angular, state_map, current_state)
+    global_pathing_angular = global_pathing_choice(fuzzy_angular, state_map, previous_state, current_state)
 
     # Final movement choice
     # Linear velocity
@@ -203,13 +230,15 @@ def movement_choice(fuzzy_system, state_map, path_list, reward_list, previous_st
     # Taken less than 30 min
     if((time.time() - start_time) < 1800):
         # Turning is based on fuzzy, with input from global pathing on where to turn
-        angular_value = fuzzy_angular * global_pathing_angular
+        # Unnormalize
+        angular_value = (fuzzy_angular * global_pathing_angular - (-1)) * (angular.max_val - angular.min_val) / (1 - (-1)) + angular.min_val
     # Taken 30 min (TO LONG), fuzzy overide
     else:
         if(((time.time() - start_time) >= 1800) & ((time.time() - start_time) < 1801)):
             print("!Fuzzy overide!")
         # Turning only based on fuzzy
-        angular_value = fuzzy_angular
+        # Unnormalize
+        angular_value = (fuzzy_angular - (-1)) * (angular.max_val - angular.min_val) / (1 - (-1)) + angular.min_val
 
     return linear_value, angular_value, current_state
 #==============================================================================
