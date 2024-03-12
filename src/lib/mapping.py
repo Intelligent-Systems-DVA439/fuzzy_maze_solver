@@ -24,10 +24,9 @@ from lib.utility import found_goal
 #------------------------------------------------------------------------------
 # A class for edges in the graph
 class Edge:
-    def __init__(self, start, end, direction):
+    def __init__(self, start, end):
         self.start = start
         self.end = end
-        self.direction = direction
     def __repr__(self):
         return f"({self.start}, {self.end}, {self.direction})"
 #------------------------------------------------------------------------------
@@ -101,7 +100,7 @@ def create_edge(state_map, previous_state, current_state):
         # Add edge from previous state to the new/current state, unless they are the same state
         if not np.array_equal(previous_state, current_state):
             # Add edge only if it does not already exist
-            temp_edge = Edge(previous_state, current_state, shared_variables.velocity.angular.z)
+            temp_edge = Edge(previous_state, current_state)
             if temp_edge not in state_map[previous_state.tostring()].edges:
                 state_map[previous_state.tostring()].add_edge(temp_edge)
 
