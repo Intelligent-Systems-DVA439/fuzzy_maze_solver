@@ -77,6 +77,7 @@ def exploration_function(state_map, current_state, direction, magnitude):
     def inv_log_prob(x, upper_limit):
         # If more than upper_limit number, 1% chance
         if x >= upper_limit:
+            # TODO make this chance somehow dependent on something
             return 0.01
         # Log(x) when x<1 is more than 1 (which would mean more than 100%)
         elif x <= 1:
@@ -278,9 +279,9 @@ def robot_control(node_array, fuzzy_system, state_map):
         msg.linear.x = linear_value
         msg.angular.z = angular_value
 
-        # Goal reached or 45 min has passed (TO LONG)
-        if((found_goal()) | ((time.time() - start_time) > 2700)):
-            if((time.time() - start_time) > 2700):
+        # Goal reached or 35 min has passed (TO LONG)
+        if((found_goal()) | ((time.time() - start_time) > 2100)):
+            if((time.time() - start_time) > 2100):
                 # Request reseting everything
                 shared_variables.reset_request = True
 
