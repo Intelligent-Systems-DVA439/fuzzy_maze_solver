@@ -146,6 +146,10 @@ def state_mapping(fuzzy_linear, state_map, path_list, reward_list, previous_stat
     for i in range(len(reward_list)):
         reward_list[i] += 1
 
+    # Setting current state to goal position (there is some bug causing goal positions to not be set correctly, they are sometimes ignored)
+    if found_goal():
+        state_map[current_state.tostring()].goal = True
+
     # If we are in goal state, update value of all states, flush path and reward list after
     if found_goal():
         # Update value of every state
@@ -155,6 +159,10 @@ def state_mapping(fuzzy_linear, state_map, path_list, reward_list, previous_stat
         path_list.clear()
         # Flush reward list once goal is reached
         reward_list.clear()
+
+    # Setting current state to goal position (there is some bug causing goal positions to not be set correctly, they are sometimes ignored)
+    if found_goal():
+        state_map[current_state.tostring()].goal = True
 
     return current_state
 #==============================================================================
