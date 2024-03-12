@@ -13,6 +13,7 @@
 # Libraries
 
 # Base libraries
+import sys
 import time
 import pickle
 import matplotlib.pyplot as plt
@@ -82,7 +83,7 @@ def load_state_map(load_file):
             print(f"Successfully loaded state_map from {load_file}, containing {len(state_map)} number of states")
         except Exception as e:
             print(f"Error loading state_map from {load_file}: {e}")
-            exit(1)
+            sys.exit(1)
 
     return state_map
 #==============================================================================
@@ -97,7 +98,7 @@ def save_state_map(save_file, state_map):
         print(f"state_map saved to {save_file} successfully, containing {len(state_map)} number of states.")
     except Exception as e:
         print(f"Error saving data to {save_file}: {e}")
-        exit(1)
+        sys.exit(1)
 
     # Nothing to return
     return None
