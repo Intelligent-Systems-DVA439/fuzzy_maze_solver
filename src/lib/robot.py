@@ -158,6 +158,7 @@ def calculate_turn(previous_state, current_state, next_state):
         angle += 2 * math.pi
 
     # Determine direction (-1 for right turn, +1 for left turn)
+    # (Since z-aix is positive counter clockwise, and negative clockwise (viewed from above))
     direction = -1 if angle > 0 else 1
 
     # Calculate magnitude of the turn (absolute value of angle) and normalize to [0, 1]
