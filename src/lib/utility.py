@@ -134,22 +134,29 @@ def reset_simulation(node_array, save_file, state_map):
         pass
 
     while(shared_variables.shutdown_flag == False):
-        # Reset simulation once goal is reached or reset has been requested
-        if((found_goal()) | (shared_variables.reset_request == True)):
-            if found_goal():
-                print("Goal reached, reseting")
-            else:
-                print("!!Reset request received, reseting!!")
-
-            time.sleep(5)
-
-            if found_goal():
-                # Save state_map
-                save_state_map(save_file, state_map)
-
+        # If robot leaves the ground, reset
+        if(shared_variables.position.z > 0.01):
+            print("!!Robot left ground, reseting!!")
             reset_world.call_async(request)
-            time.sleep(1/10)
-            shared_variables.reset_request = False
+        else:
+            # Reset simulation once goal is reached or reset has been requested
+            if((found_goal()) | (shared_variables.reset_request == True)):
+                if found_goal():
+                    print("Goal reached, reseting")
+                else:
+                    print("!!Reset request received, reseting!!")
+
+                time.sleep(5)
+
+                if found_goal():
+                    shared_variables.sm_mutex.acquire()
+                    # Save state_map
+                    save_state_map(save_file, state_map)
+                    shared_variables.sm_mutex.release()
+
+                reset_world.call_async(request)
+                time.sleep(1/10)
+                shared_variables.reset_request = False
 
     # Only returns on shutdown
     return None
