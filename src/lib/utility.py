@@ -128,6 +128,7 @@ def reset_simulation(node_array, save_file, state_map):
     request = Empty.Request()
     # Add node to node array for shutdown
     node_array.append(node)
+    print_flag = True
 
     # Wait until position has a value (aka until a turtlebot position has been received)
     while(shared_variables.position == None):
@@ -136,9 +137,12 @@ def reset_simulation(node_array, save_file, state_map):
     while(shared_variables.shutdown_flag == False):
         # If robot leaves the ground, reset
         if(shared_variables.position.z > 0.01):
-            print("!!Robot left ground, reseting!!")
+            if print_flag:
+                print("!!Robot left ground, reseting!!")
             reset_world.call_async(request)
+            print_flag = False
         else:
+            print_flag = True
             # Reset simulation once goal is reached or reset has been requested
             if((found_goal()) | (shared_variables.reset_request == True)):
                 if found_goal():
