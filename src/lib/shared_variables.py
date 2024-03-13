@@ -10,6 +10,14 @@
 
 
 #------------------------------------------------------------------------------
+# Libraries
+
+# Base libraries
+import threading
+#------------------------------------------------------------------------------
+
+
+#------------------------------------------------------------------------------
 # Global variables
 
 # Global variable to store turtlebot coordinates/position
@@ -24,4 +32,6 @@ shutdown_flag = False
 reset_request = False
 # Maze boundry coordinates (assumes maze is centered and square)
 MAZE_BOUNDARY_COORDINATE = 8.8
+# Mutex for securing access to state_map
+sm_mutex = threading.Semaphore()
 #------------------------------------------------------------------------------
