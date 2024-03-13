@@ -122,16 +122,20 @@ def state_mapping(fuzzy_linear, state_map, path_list, reward_list, previous_stat
         pass
 
 
+    shared_variables.sm_mutex.acquire()
     # Creates current state and adds it to state_map
     current_state = create_state(state_map, previous_state)
+    shared_variables.sm_mutex.release()
 
     # First time, use current_state as previous_state
     # After first time, previous state is provided as an argument and is the last loops current value (which is returned at the end)
     if(np.all(previous_state == -1)):
         previous_state = current_state
 
+    shared_variables.sm_mutex.acquire()
     # Creates edge
     create_edge(state_map, previous_state, current_state)
+    shared_variables.sm_mutex.release()
 
     # Append current state to path/traversal list
     path_list.append(state_map[current_state.tostring()])
@@ -147,12 +151,16 @@ def state_mapping(fuzzy_linear, state_map, path_list, reward_list, previous_stat
 
     # Setting current state to goal position (there is some bug causing goal positions to not be set correctly, they are sometimes ignored)
     if found_goal():
+        shared_variables.sm_mutex.acquire()
         state_map[current_state.tostring()].goal = True
+        shared_variables.sm_mutex.release()
 
     # If we are in goal state, update value of all states, flush path and reward list after
     if found_goal():
+        shared_variables.sm_mutex.acquire()
         # Update value of every state
         update_state_value(state_map, path_list, reward_list)
+        shared_variables.sm_mutex.release()
 
         # Flush path list once goal is reached
         path_list.clear()
@@ -161,7 +169,9 @@ def state_mapping(fuzzy_linear, state_map, path_list, reward_list, previous_stat
 
     # Setting current state to goal position (there is some bug causing goal positions to not be set correctly, they are sometimes ignored)
     if found_goal():
+        shared_variables.sm_mutex.acquire()
         state_map[current_state.tostring()].goal = True
+        shared_variables.sm_mutex.release()
 
     return current_state
 #==============================================================================
