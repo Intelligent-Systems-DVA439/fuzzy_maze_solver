@@ -77,7 +77,7 @@ def exploration_function(state_map, current_state, direction, magnitude):
     def inv_log_prob(x, upper_limit):
         # If more than upper_limit number, 1% chance
         if x >= upper_limit:
-            # TODO make this chance somehow dependent on something
+            # TODO make this chance dependent on the number of times this state has been visited compared to neighboring states
             return 0.01
         # Log(x) when x<1 is more than 1 (which would mean more than 100%)
         elif x <= 1:
